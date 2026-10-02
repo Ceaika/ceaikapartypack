@@ -1,0 +1,7 @@
+#base "pilot_mp.set"
+"ph_prop_0"
+{
+ "global" { "wallrun" "0" "doubleJump" "0" "automantle" "0" "slide" "0" "jumpheight" "80" }
+ "stand" { "speed" "240" "sprintspeed" "350" "hull_min" "-6 -6 0" "hull_max" "6 6 10" "viewheight" "0 0 8" "firstpersonproxyoffset" "0 0 -8" }
+ "crouch" { "speed" "120" "hull_min" "-6 -6 0" "hull_max" "6 6 10" "viewheight" "0 0 8" "firstpersonproxyoffset" "0 0 -8" }
+}

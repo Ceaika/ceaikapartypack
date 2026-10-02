@@ -1,0 +1,4 @@
+WeaponData
+{
+    "OnWeaponPrimaryAttack" "Party_UpgradeCoreAttack"
+}

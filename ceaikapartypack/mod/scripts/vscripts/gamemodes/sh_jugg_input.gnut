@@ -1,0 +1,41 @@
+global function JuggInputUIInit
+global function JuggSetSabotageInput
+
+float juggInputDeadline = 0.0
+
+void function JuggInputUIInit()
+{
+    JuggRestoreSabotageInput()
+    thread JuggInputWatch()
+}
+
+void function JuggRestoreSabotageInput()
+{
+    if(!GetConVarBool("jugg_input_inverted")) return
+    SetConVarBool("m_invert_pitch",GetConVarBool("jugg_input_saved_pitch"))
+    SetConVarBool("joy_inverty",GetConVarBool("jugg_input_saved_yaw"))
+    SetConVarBool("jugg_input_inverted",false)
+}
+
+void function JuggSetSabotageInput(bool active)
+{
+    if(!active) { juggInputDeadline=0.0;JuggRestoreSabotageInput();return; }
+    juggInputDeadline=Time()+0.5
+    if(!GetConVarBool("jugg_input_inverted"))
+    {
+        SetConVarBool("jugg_input_saved_pitch",GetConVarBool("m_invert_pitch"))
+        SetConVarBool("jugg_input_saved_yaw",GetConVarBool("joy_inverty"))
+        SetConVarBool("jugg_input_inverted",true)
+    }
+    SetConVarBool("m_invert_pitch",!GetConVarBool("jugg_input_saved_pitch"))
+    SetConVarBool("joy_inverty",!GetConVarBool("jugg_input_saved_yaw"))
+}
+
+void function JuggInputWatch()
+{
+    while(true)
+    {
+        if(!IsConnected() || Time()>=juggInputDeadline) JuggRestoreSabotageInput()
+        wait 0.1
+    }
+}

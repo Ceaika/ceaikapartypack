@@ -1,0 +1,12 @@
+"WeaponData"
+{
+    "OnWeaponPrimaryAttack" "Party_TacticalAttack"
+    "Mods"
+    {
+        "hotpotato_single_use"
+        {
+            "regen_ammo_refill_rate" "0"
+            "regen_ammo_refill_start_delay" "9999"
+        }
+    }
+}

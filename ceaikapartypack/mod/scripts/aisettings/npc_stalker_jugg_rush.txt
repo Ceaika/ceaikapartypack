@@ -1,0 +1,10 @@
+#base "npc_stalker_fd.txt"
+"npc_stalker_jugg_rush"
+{
+    "crawlingSettingsWrapper" "npc_stalker_crawling_jugg_rush"
+    "minGoalRadius" "16"
+    "chaseStopDist" "48"
+    "chaseStopDistHeavyArmor" "48"
+    "MinStartMoveDist" "8"
+    "MaxArrivalDist" "32"
+}

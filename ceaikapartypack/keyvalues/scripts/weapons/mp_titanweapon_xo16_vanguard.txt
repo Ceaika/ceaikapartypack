@@ -1,0 +1,17 @@
+WeaponData
+{
+    Mods
+    {
+        jugg_monarch_balance
+        {
+            "fire_rate" "*0.9"
+            "ammo_clip_size" "*0.9"
+            "damage_near_value" "*0.75"
+            "damage_far_value" "*0.7"
+            "damage_near_value_titanarmor" "*0.75"
+            "damage_far_value_titanarmor" "*0.7"
+            "damage_near_distance" "*0.75"
+            "damage_far_distance" "*0.75"
+        }
+    }
+}

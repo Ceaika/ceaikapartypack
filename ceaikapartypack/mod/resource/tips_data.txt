@@ -1,0 +1,10 @@
+
+Tips
+{
+	LastTipIndex			30
+	NewTipLevelDifference	1
+	NewTipDisplayChance		0.7
+	LevelRequirements
+	{
+	}
+}

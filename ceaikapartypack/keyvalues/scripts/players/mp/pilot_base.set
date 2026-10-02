@@ -1,0 +1,6 @@
+"pilot_base"
+{
+
+ "stand" { "PoseMods" { "jugg_fast" { "speed" "347" "sprintspeed" "520" } } }
+ "crouch" { "PoseMods" { "jugg_fast" { "speed" "160" } } }
+}

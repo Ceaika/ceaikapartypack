@@ -1,0 +1,7 @@
+# os junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# zips u build to send around
+*.zip

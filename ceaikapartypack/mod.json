@@ -1,0 +1,233 @@
+{
+    "Name": "Ceaika Party Pack",
+    "Description": "Prop Hunt, Hot Potato, Juggernaut and Body Swap, with a party lobby between matches. Property of ceaika; do not redistribute.",
+    "Version": "2.2.0",
+    "LoadPriority": 4,
+    "RequiredOnClient": true,
+    "Scripts": [
+        {
+            "Path": "party_weapon_callbacks.nut",
+            "RunOn": "CLIENT || SERVER"
+        },
+        {
+            "Path": "gamemodes/sh_gamemode_hotpotato.nut",
+            "RunOn": "(CLIENT || SERVER) && MP",
+            "ServerCallback": {
+                "Before": "Sh_HotPotato_Init"
+            },
+            "ClientCallback": {
+                "Before": "Sh_HotPotato_Init"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_gamemode_hotpotato.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/sh_gamemode_jugg.nut",
+            "RunOn": "( CLIENT || SERVER ) && MP",
+            "ClientCallback": {
+                "Before": "Sh_GamemodeJugg_Init"
+            },
+            "ServerCallback": {
+                "Before": "Sh_GamemodeJugg_Init"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_gamemode_jugg.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/sh_ph_arena.nut",
+            "RunOn": "(CLIENT || SERVER) && MP"
+        },
+        {
+            "Path": "gamemodes/sh_ph_maps.nut",
+            "RunOn": "(CLIENT || SERVER) && MP"
+        },
+        {
+            "Path": "gamemodes/sh_prophunt.nut",
+            "RunOn": "(CLIENT || SERVER) && MP",
+            "ServerCallback": {
+                "Before": "PH_SharedInit"
+            },
+            "ClientCallback": {
+                "Before": "PH_SharedInit"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_prophunt.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/sh_ph_weapon.nut",
+            "RunOn": "CLIENT || SERVER"
+        },
+        {
+            "Path": "gamemodes/sh_ph_controls.nut",
+            "RunOn": "CLIENT || UI"
+        },
+        {
+            "Path": "gamemodes/ui_ph_settings.nut",
+            "RunOn": "UI",
+            "UICallback": {
+                "Before": "PH_SettingsInit"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_ph_announcements.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/cl_ph_arena.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/sh_jugg_input.gnut",
+            "RunOn": "UI",
+            "UICallback": {
+                "After": "JuggInputUIInit"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_party_ui.nut",
+            "RunOn": "CLIENT && MP",
+            "ClientCallback": {
+                "After": "PartyUI_Init"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_party_names.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/cl_party_intro.nut",
+            "RunOn": "CLIENT && MP",
+            "ClientCallback": {
+                "After": "PartyIntro_Init"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_jugg_hack.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/sh_gamemode_bodyswap.nut",
+            "RunOn": "(CLIENT || SERVER) && MP",
+            "ServerCallback": {
+                "Before": "Sh_BodySwap_Init"
+            },
+            "ClientCallback": {
+                "Before": "Sh_BodySwap_Init"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_gamemode_bodyswap.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/sh_gamemode_partylobby.nut",
+            "RunOn": "(CLIENT || SERVER) && MP",
+            "ServerCallback": {
+                "Before": "Sh_PartyLobby_Init"
+            },
+            "ClientCallback": {
+                "Before": "Sh_PartyLobby_Init"
+            }
+        },
+        {
+            "Path": "gamemodes/cl_party_credits.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/cl_party_votes.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/cl_party_statue.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/cl_party_lobby.nut",
+            "RunOn": "CLIENT && MP"
+        }
+    ],
+    "ConVars": [
+        {
+            "Name": "jugg_hud_x",
+            "DefaultValue": "0.76",
+            "Flags": "ARCHIVE_PLAYERPROFILE"
+        },
+        {
+            "Name": "jugg_hud_y",
+            "DefaultValue": "0.12",
+            "Flags": "ARCHIVE_PLAYERPROFILE"
+        },
+        {
+            "Name": "ph_bind_reroll_key",
+            "DefaultValue": "1",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_reroll_pad",
+            "DefaultValue": "1",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_decoy_key",
+            "DefaultValue": "2",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_decoy_pad",
+            "DefaultValue": "2",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_lock_key",
+            "DefaultValue": "3",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_lock_pad",
+            "DefaultValue": "3",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_freeze_key",
+            "DefaultValue": "4",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_freeze_pad",
+            "DefaultValue": "4",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_taunt_g_key",
+            "DefaultValue": "9",
+            "Flags": 16777216
+        },
+        {
+            "Name": "ph_bind_taunt_g_pad",
+            "DefaultValue": "8",
+            "Flags": 16777216
+        },
+        {
+            "Name": "jugg_input_inverted",
+            "DefaultValue": "0"
+        },
+        {
+            "Name": "jugg_input_saved_pitch",
+            "DefaultValue": "0.022"
+        },
+        {
+            "Name": "jugg_input_saved_yaw",
+            "DefaultValue": "0.022"
+        }
+    ],
+    "Localisation": [
+        "resource/juggernaut_localisation_%language%.txt",
+        "resource/ceaikapartypack_localisation_%language%.txt"
+    ]
+}

@@ -1,0 +1,11 @@
+WeaponData
+{
+    Mods
+    {
+        hotpotato_tag
+        {
+            "impulse_force" "0"
+            "damage_flags" "DF_MELEE"
+        }
+    }
+}

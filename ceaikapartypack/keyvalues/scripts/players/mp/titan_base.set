@@ -1,0 +1,6 @@
+"titan_base"
+{
+ "stand" { "PoseMods" { "jugg_equal_speed" { "speed" "250" "sprintspeed" "380" "acceleration" "900" "sprintAcceleration" "120" } } }
+ "crouch" { "PoseMods" { "jugg_equal_speed" { "speed" "150" "acceleration" "200" } } }
+
+}
