@@ -29,7 +29,7 @@ if u don't wanna mess with your normal mods, make a profile. make a folder next 
 
 launch with:
 ```
-NorthstarLauncher.exe -profile=woof
+NorthstarLauncher.exe -profile=notamodprofile
 ```
 or through steam/ea launch options: `-northstar -profile=woof`
 
