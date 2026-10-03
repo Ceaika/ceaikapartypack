@@ -1,4 +1,5 @@
 global function PartyStatue_ClientInit
+global function PartyStatue_Release
 
 const float ST_TITLE_Z = 322.0
 const float ST_NAME_Z = 292.0
@@ -31,7 +32,14 @@ struct
     int wins = 0
     string leader = ""
     float changedAt = -99.0
+    bool released = false
 } statue
+
+void function PartyStatue_Release()
+{
+    statue.released = true
+    ST_Destroy()
+}
 
 void function PartyStatue_ClientInit()
 {
@@ -111,6 +119,7 @@ void function PartyStatue_Run()
             foreach ( var rui in statue.outline ) RuiSetFloat( rui, "msgAlpha", 0.0 )
             continue
         }
+        if ( statue.released ) continue
         if ( statue.ruis.len() == 0 )
         {
             if ( Time() < retryAt ) continue

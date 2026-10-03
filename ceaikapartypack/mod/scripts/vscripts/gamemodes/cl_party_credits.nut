@@ -1,4 +1,5 @@
 global function PartyCredits_Init
+global function PartyCredits_Release
 
 const vector CREDITS_SPOT = <838.93, 2.75, 59.03>
 const float CREDITS_SEE = 2600.0
@@ -37,7 +38,14 @@ struct
     bool open = false
     vector right = <0,1,0>
     vector toward = <1,0,0>
+    bool released = false
 } credits
+
+void function PartyCredits_Release()
+{
+    credits.released = true
+    Credits_Destroy()
+}
 
 void function PartyCredits_Init()
 {
@@ -114,6 +122,7 @@ void function PartyCredits_Run()
             credits.openT = 0.0
             continue
         }
+        if ( credits.released ) continue
         if ( credits.ruis.len() == 0 )
         {
             if ( Time() < retryAt ) continue

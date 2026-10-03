@@ -712,6 +712,10 @@ void function PartyTransition_Arrive()
 
 void function PartyTransition_Show( int kind, int mode )
 {
+
+    PartyVoteBoards_Release()
+    PartyCredits_Release()
+    PartyStatue_Release()
     transition.active = true
     intro.zoom = 1.0
     bool starting = kind == 1

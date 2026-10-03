@@ -1,5 +1,6 @@
 global function PartyVoteBoards_Init
 global function PartyHolo_Digit
+global function PartyVoteBoards_Release
 
 const int VB_MODES = 9
 const float VB_OPEN = 210.0
@@ -45,7 +46,14 @@ struct
     float popAt = -99.0
     int lastVote = -2
     float flashAt = -99.0
+    bool released = false
 } board
+
+void function PartyVoteBoards_Release()
+{
+    board.released = true
+    VB_Destroy()
+}
 
 void function PartyVoteBoards_Init()
 {
@@ -146,7 +154,7 @@ void function VB_Run()
             }
             if ( IsValid( board.panels[i] ) ) any = true
         }
-        if ( !any ) continue
+        if ( !any || board.released ) continue
         if ( board.ruis.len() == 0 )
         {
             if ( Time() < retryAt ) continue
