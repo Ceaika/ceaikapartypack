@@ -140,7 +140,36 @@ array<asset> function PH_MapModels()
         $"models/vehicle/vehicle_w3_hatchback/vehicle_w3_hatch_destruction.mdl",
         $"models/IMC_base/cargo_container_imc_01_blue.mdl",
         $"models/IMC_base/cargo_container_imc_01_white.mdl",
-        $"models/IMC_base/cargo_container_imc_01_white_open.mdl"]
+        $"models/IMC_base/cargo_container_imc_01_white_open.mdl",
+        $"models/industrial/keg_large.mdl",
+        $"models/furniture/kitchen_set03_chair01.mdl",
+        $"models/furniture/kitchen_set02_black_old_counter1_1.mdl",
+        $"models/furniture/kitchen_set02_black_old_counter2_2.mdl",
+        $"models/furniture/kitchen_set02_black_old_counter1_2.mdl",
+        $"models/containers/box_small_cardboard.mdl",
+        $"models/domestic/grain_sack_small_02.mdl",
+        $"models/domestic/grain_sack_small_01.mdl",
+        $"models/angel_city/toy_dispenser_01.mdl",
+        $"models/industrial/store_fridge_64.mdl",
+        $"models/industrial/keg_small.mdl",
+        $"models/domestic/trash_can_yellow_open.mdl",
+        $"models/furniture/kitchen_set02_black_old_sink01.mdl",
+        $"models/colony/water_heater_white.mdl",
+        $"models/colony/water_heater_red.mdl",
+        $"models/industrial/work_cart_plastic.mdl",
+        $"models/industrial/cafe_coffe_machine.mdl",
+        $"models/industrial/electrical_box_green.mdl",
+        $"models/angel_city/sign_cleaning_wetfloor_01.mdl",
+        $"models/industrial/tripod_cone_v1_medium_on.mdl",
+        $"models/industrial/tripod_cone_v1_low_on.mdl",
+        $"models/industrial/lab_push_cart.mdl",
+        $"models/industrial/welding_push_unit.mdl",
+        $"models/industrial/tool_chest_double.mdl",
+        $"models/industrial/purifier_water.mdl",
+        $"models/furniture/dining_table1.mdl",
+        $"models/domestic/glass_coffee_table.mdl",
+        $"models/industrial/roof_ac_unit_med.mdl",
+        $"models/garbage/garbage_bag_plastic_a.mdl"]
     return [$"models/domestic/trash_garbage_can_exterior_01_can_only.mdl",
         $"models/furniture/chair_leather.mdl",
         $"models/domestic/toilet_regular_open.mdl",
@@ -188,28 +217,28 @@ array<string> function PH_MapNames()
 {
     if(GetMapName()=="mp_complex3") return ["Kitchen chair", "Leather corner seat", "Leather couch", "Office bin", "Equipment case", "Green equipment case", "Tall red vase", "Modern planter", "Leather office chair", "Patio table", "Long bench", "Black couch", "Plastic box", "Cardboard box", "Metal box", "Glass coffee table", "Control desk", "Wall bench", "Gas canister", "Flower pots", "Blue tank crate", "Long planter", "Office chair", "Large plastic box", "Planter bench", "Plastic chair", "Wrapped pallet", "Office desk", "Small desk", "Wooden crate", "Garbage bag", "Bowl pile", "Tiny box", "Industrial shelves", "Monitor console", "Standing ashtray", "White leather couch", "Wooden pallet", "Street rubbish bin", "Side table", "Control console", "Angled wall bench", "Modern bench", "Tool chest", "Fire extinguisher case", "Monitor bank", "Desk monitor", "Computer monitor"]
     if(GetMapName()=="mp_angel_city") return ["Small cardboard box", "Flat cardboard box", "Fire hydrant", "Concrete barrier", "Recycling bin", "Toy dispenser", "Vending machine", "Water heater", "Barrel", "Blue crate", "Bookshelf", "Grain sack", "Market counter", "Rolled rug", "Blue bin", "Green bin", "Street rubbish bin", "White leather couch", "Brown sofa", "Shop counter", "Patio chair", "Kitchen cabinet", "Office desk", "Industrial shelves", "Garbage bag", "Dumpster", "Blue dumpster", "Tall AC unit", "Short AC unit", "Coffee machine", "Stacked grain sacks", "Server rack", "Keg", "Store fridge", "Traffic cone", "Work cart", "Market table", "Power generator", "Red hatchback", "Large fan case"]
-    if(GetMapName()=="mp_colony02") return ["Street rubbish bin", "Blue bin", "Green bin", "Yellow bin", "Barrel", "Wooden crate", "Blue crate", "Orange crate", "Cardboard box A", "Cardboard box B", "Cardboard box C", "Gas tank", "Dining chair", "Brown sofa", "Old refrigerator", "Stove", "Industrial shelves", "Market counter", "Large grain sack", "Grain sack", "Stacked grain sacks", "Vending machine", "Standing ashcan", "Damaged hatchback", "Blue cargo container", "White cargo container", "Open white container"]
+    if(GetMapName()=="mp_colony02") return ["Street rubbish bin", "Blue bin", "Green bin", "Yellow bin", "Barrel", "Wooden crate", "Blue crate", "Orange crate", "Cardboard box A", "Cardboard box B", "Cardboard box C", "Gas tank", "Dining chair", "Brown sofa", "Old refrigerator", "Stove", "Industrial shelves", "Market counter", "Large grain sack", "Grain sack", "Stacked grain sacks", "Vending machine", "Standing ashcan", "Damaged hatchback", "Blue cargo container", "White cargo container", "Open white container", "Large keg", "Kitchen chair", "Kitchen counter", "Wide kitchen counter", "Corner kitchen counter", "Small cardboard box", "Small grain sack", "Small grain sack B", "Toy dispenser", "Store fridge", "Small keg", "Open yellow bin", "Kitchen sink", "White water heater", "Red water heater", "Plastic work cart", "Coffee machine", "Green electrical box", "Wet floor sign", "Work light", "Low work light", "Lab cart", "Welding cart", "Double tool chest", "Water purifier", "Dining table", "Glass coffee table", "Rooftop AC unit", "Garbage bag"]
     return ["Rubbish bin", "Leather chair", "Toilet", "Equipment case", "Green equipment case", "Bookshelf", "Newsstand", "Leather sofa", "Tall kitchen cabinet", "Kitchen counter", "Graffiti newsstand", "Single sandbags", "Bent sandbags", "Curved sandbags", "Large sandbags", "Modular truck", "Hatchback", "Damaged hatchback", "Black-and-white hatchback", "Blue cargo container", "Green cargo container", "White cargo container", "Open blue container", "Open white container", "Air-conditioning unit", "Industrial fan", "Training dummy A", "Training dummy B", "Training dummy C", "Construction light", "Ammo backpacks", "Transformer pole", "Small railing", "Medium railing", "Ship railing", "Metal sign plate", "Industrial door", "Broken Stalker A", "Broken Stalker B", "Wall keypad", "Charge door console", "Township sign"]
 }
 array<int> function PH_MapClasses()
 {
     if(GetMapName()=="mp_complex3") return [0, 2, 2, 1, 1, 1, 0, 1, 1, 1, 0, 2, 0, 0, 0, 0, 2, 2, 0, 0, 2, 0, 1, 1, 0, 0, 2, 1, 0, 0, 0, 0, 0, 1, 1, 0, 2, 0, 1, 0, 2, 2, 1, 0, 0, 1, 0, 0]
     if(GetMapName()=="mp_angel_city") return [2, 0, 1, 2, 1, 0, 1, 2, 1, 0, 0, 1, 2, 0, 0, 0, 1, 2, 2, 2, 1, 2, 2, 1, 0, 2, 2, 2, 1, 0, 2, 1, 1, 1, 0, 0, 2, 2, 2, 2]
-    if(GetMapName()=="mp_colony02") return [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 2, 2, 2, 1, 2, 1, 0, 2, 1, 0, 2, 2, 2, 2]
+    if(GetMapName()=="mp_colony02") return [1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 2, 2, 2, 1, 2, 1, 0, 2, 1, 0, 2, 2, 2, 2, 1, 0, 2, 2, 2, 0, 0, 0, 0, 1, 1, 0, 2, 2, 2, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 2, 0]
     return [1, 2, 1, 2, 2, 0, 0, 2, 2, 2, 0, 0, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1]
 }
 array<int> function PH_MapHealth()
 {
     if(GetMapName()=="mp_complex3") return [75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 100, 100, 75, 75, 75, 75, 125, 75, 75, 75, 100, 75, 75, 75, 75, 75, 175, 75, 75, 75, 75, 75, 75, 100, 75, 75, 100, 75, 75, 75, 125, 75, 100, 75, 75, 100, 75, 75]
     if(GetMapName()=="mp_angel_city") return [75, 75, 75, 100, 100, 75, 100, 75, 75, 75, 100, 75, 100, 75, 75, 75, 75, 100, 150, 125, 75, 75, 100, 100, 75, 100, 100, 100, 75, 75, 125, 75, 75, 100, 75, 75, 150, 200, 175, 150]
-    if(GetMapName()=="mp_colony02") return [75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 150, 100, 75, 100, 100, 75, 75, 125, 100, 75, 200, 225, 225, 225]
+    if(GetMapName()=="mp_colony02") return [75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 150, 100, 75, 100, 100, 75, 75, 125, 100, 75, 200, 225, 225, 225, 75, 75, 75, 75, 75, 75, 75, 75, 75, 100, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 75, 100, 75]
     return [75, 100, 75, 100, 100, 75, 75, 125, 100, 75, 75, 75, 75, 150, 100, 300, 175, 200, 200, 225, 225, 225, 225, 225, 75, 175, 75, 75, 75, 100, 100, 300, 75, 75, 75, 75, 125, 100, 100, 75, 75, 275]
 }
 array<vector> function PH_MapSizes()
 {
     if(GetMapName()=="mp_complex3") return [<17,17,40>, <35,35,39>, <35,35,42>, <18,18,41>, <41,41,33>, <41,41,33>, <13,13,113>, <20,20,67>, <24,24,50>, <39,39,32>, <69,69,25>, <81,81,35>, <20,20,18>, <17,17,17>, <18,18,15>, <48,48,21>, <49,49,56>, <57,57,41>, <9,9,18>, <13,13,98>, <48,48,43>, <111,111,39>, <23,23,50>, <31,31,30>, <30,30,95>, <19,19,45>, <67,67,80>, <47,47,35>, <33,33,38>, <23,23,20>, <18,18,26>, <11,11,13>, <9,9,9>, <39,39,75>, <37,37,53>, <8,8,35>, <56,56,36>, <49,49,10>, <17,17,39>, <35,35,17>, <49,49,56>, <56,56,41>, <74,74,43>, <22,22,22>, <14,14,39>, <51,51,32>, <25,25,21>, <14,14,24>]
     if(GetMapName()=="mp_angel_city") return [<24,24,33>, <38,38,17>, <25,25,43>, <68,68,39>, <32,32,77>, <22,22,55>, <29,29,81>, <27,27,74>, <23,23,48>, <21,21,14>, <33,33,118>, <19,19,28>, <63,63,40>, <64,64,14>, <21,21,41>, <21,21,41>, <17,17,39>, <56,56,36>, <74,74,54>, <73,73,37>, <22,22,36>, <23,23,37>, <54,54,45>, <39,39,75>, <18,18,26>, <30,30,63>, <30,30,63>, <35,35,74>, <28,28,29>, <34,34,82>, <50,50,59>, <24,24,81>, <17,17,33>, <39,39,97>, <12,12,28>, <25,25,35>, <70,70,62>, <75,75,104>, <97,97,61>, <72,72,129>]
-    if(GetMapName()=="mp_colony02") return [<17,17,39>, <20,20,42>, <20,20,42>, <20,20,42>, <23,23,49>, <23,23,20>, <21,21,15>, <10,10,16>, <19,19,26>, <19,19,33>, <19,19,33>, <9,9,18>, <15,15,37>, <73,73,54>, <27,27,78>, <24,24,42>, <39,39,75>, <53,53,40>, <18,18,28>, <18,18,25>, <50,50,59>, <29,29,81>, <8,8,35>, <97,97,63>, <83,83,99>, <83,83,99>, <83,83,99>]
+    if(GetMapName()=="mp_colony02") return [<17,17,39>, <20,20,42>, <20,20,42>, <20,20,42>, <23,23,49>, <23,23,20>, <21,21,15>, <10,10,16>, <19,19,26>, <19,19,33>, <19,19,33>, <9,9,18>, <15,15,37>, <73,73,54>, <27,27,78>, <24,24,42>, <39,39,75>, <53,53,40>, <18,18,28>, <18,18,25>, <50,50,59>, <29,29,81>, <8,8,35>, <97,97,63>, <83,83,99>, <83,83,99>, <83,83,99>, <21,21,39>, <14,14,29>, <24,24,41>, <30,30,41>, <30,30,41>, <17,17,17>, <18,18,21>, <18,18,20>, <22,22,55>, <39,39,97>, <17,17,33>, <21,21,41>, <25,25,50>, <27,27,74>, <27,27,74>, <25,25,35>, <34,34,82>, <26,26,66>, <18,18,38>, <22,22,41>, <22,22,31>, <21,21,57>, <21,21,39>, <22,22,49>, <26,26,66>, <30,30,31>, <48,48,21>, <45,45,37>, <18,18,26>]
     return [<17,17,39>, <38,38,48>, <23,23,47>, <41,41,33>, <41,41,33>, <24,24,90>, <15,15,47>, <53,53,48>, <29,29,105>, <24,24,41>, <15,15,47>, <24,24,11>, <20,20,26>, <68,68,42>, <70,70,42>, <198,198,154>, <88,88,62>, <97,97,63>, <97,97,63>, <83,83,99>, <83,83,99>, <83,83,99>, <83,83,100>, <83,83,99>, <31,31,39>, <67,67,129>, <14,14,73>, <14,14,71>, <19,19,72>, <31,31,93>, <53,53,19>, <74,74,388>, <8,8,38>, <16,16,38>, <65,65,53>, <8,8,36>, <49,49,129>, <51,51,29>, <51,51,28>, <7,7,21>, <11,11,39>, <205,205,192>]
 }
 bool function PH_SupportedMap()
@@ -248,6 +277,16 @@ array<PHPart> function PH_MapParts()
     {
         phParts.list.append(PH_Part($"models/industrial/store_fridge_64.mdl",$"models/domestic/milk_cluster_01.mdl",< -5,-1,74 >,< 0,0,0 >,1.0,87.2))
         phParts.list.append(PH_Part($"models/industrial/store_fridge_64.mdl",$"models/domestic/milk_cluster_01.mdl",< -5,0,54 >,< 0,0,0 >,1.0,67.2))
+    }
+    if(GetMapName()=="mp_colony02")
+    {
+        phParts.list.append(PH_Part($"models/industrial/store_fridge_64.mdl",$"models/domestic/milk_cluster_01.mdl",< -5,0,54 >,< 0,0,0 >,1.0,67.2))
+        phParts.list.append(PH_Part($"models/industrial/store_fridge_64.mdl",$"models/domestic/milk_cluster_01.mdl",< -5,-1,74 >,< 0,0,0 >,1.0,87.2))
+        phParts.list.append(PH_Part($"models/industrial/store_fridge_64.mdl",$"models/domestic/milk_cluster_01.mdl",< -5,8,33 >,< 0,0,0 >,0.75,42.9))
+        phParts.list.append(PH_Part($"models/industrial/store_fridge_64.mdl",$"models/domestic/milk_cluster_01.mdl",< -5,-13,19 >,< 0,0,0 >,0.5,25.6))
+        phParts.list.append(PH_Part($"models/industrial/store_fridge_64.mdl",$"models/domestic/milk_cluster_01.mdl",< -5,11,19 >,< 0,0,0 >,0.5,25.6))
+        phParts.list.append(PH_Part($"models/industrial/tool_chest_double.mdl",$"models/industrial/tool_chest_top.mdl",< 0,0,48.4 >,< 0,0,0 >,1.0,69.4))
+        phParts.list.append(PH_Part($"models/industrial/tool_chest_double.mdl",$"models/industrial/tool_chest_top.mdl",< 0,0,68.2 >,< 0,0,0 >,1.0,89.2))
     }
     return phParts.list
 }

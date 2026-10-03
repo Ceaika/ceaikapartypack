@@ -1,7 +1,7 @@
 untyped
 global function Cl_PartyLobby_Init
 
-const int PL_SLOTS = 12
+const int PL_SLOTS = 16
 const int PL_MODES = 9
 const vector PL_ACCENT = <0.35,0.82,1.0>
 const vector PL_GO = <0.3,0.92,0.55>

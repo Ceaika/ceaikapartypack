@@ -1,7 +1,7 @@
 {
     "Name": "Ceaika Party Pack",
     "Description": "Prop Hunt, Hot Potato, Juggernaut and Body Swap, with a party lobby between matches. Property of ceaika; do not redistribute.",
-    "Version": "2.2.0",
+    "Version": "2.2.1",
     "LoadPriority": 4,
     "RequiredOnClient": true,
     "Scripts": [

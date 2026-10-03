@@ -15,8 +15,8 @@ playlists
                 image ffa
                 color "255 135 35 255"
                 classic_mp 1
-                max_players 12
-                max_teams 12
+                max_players 14
+                max_teams 16
                 scorelimit 5
                 timelimit 9999
                 run_epilogue 1
@@ -26,7 +26,7 @@ playlists
                 riff_allow_npcs 0
                 respawnprotection 0
                 hp_fuse_seconds 30
-                hp_fuse_min 12
+                hp_fuse_min 10
                 hp_fuse_per_pilot 2
                 hp_pod_chance 30
                 hp_pod_delay_min 5
@@ -56,7 +56,7 @@ playlists
                 image lts
                 color "224 112 48 255"
                 run_epilogue 1
-                max_players 12
+                max_players 14
                 max_teams 2
                 timelimit 9999
                 scorelimit 5
@@ -100,7 +100,7 @@ playlists
                 jugg_rounds_per_map 0
                 jugg_health_base_pct 160
                 jugg_health_per_pilot_pct 70
-                jugg_health_max_pct 1000
+                jugg_health_max_pct 1100
                 jugg_max_pips 4
                 jugg_shield_base 1500
                 jugg_shield_per_pilot 750
@@ -158,7 +158,7 @@ playlists
                 abbreviation #PL_prophunt_abbr
                 image tdm
                 classic_mp 1
-                max_players 12
+                max_players 14
                 max_teams 2
                 scorelimit 4
                 timelimit 9999
@@ -204,7 +204,7 @@ playlists
                 image tdm
                 color "120 90 255 255"
                 classic_mp 1
-                max_players 12
+                max_players 14
                 max_teams 2
                 scorelimit 50
                 timelimit 10
@@ -236,7 +236,7 @@ playlists
                 image tdm
                 color "253 75 1 255"
                 classic_mp 1
-                max_players 12
+                max_players 14
                 max_teams 2
                 scorelimit 999
                 timelimit 9999
