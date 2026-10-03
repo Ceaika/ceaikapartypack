@@ -6,6 +6,10 @@
     "RequiredOnClient": true,
     "Scripts": [
         {
+            "Path": "gamemodes/_party_server_stubs.nut",
+            "RunOn": "SERVER && MP"
+        },
+        {
             "Path": "party_weapon_callbacks.nut",
             "RunOn": "CLIENT || SERVER"
         },
