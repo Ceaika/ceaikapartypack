@@ -25,7 +25,7 @@ the mod is `RequiredOnClient`, so your version has to match the server's or it w
 
 ### separate profile (optional)
 
-if u don't wanna mess with your normal mods, make a profile. make a folder next to `R2Northstar` (call it whatever, like `woof`), give it a `mods` folder, copy `Northstar.Client`, `Northstar.Custom` and `Northstar.CustomServers` into it from `R2Northstar/mods`, copy `R2Northstar/plugins` over too if u have it, then put this mod in there.
+if u don't wanna mess with your normal mods, make a profile. make a folder next to `R2Northstar` (call it whatever, like `notamodprofile`), give it a `mods` folder, copy `Northstar.Client`, `Northstar.Custom` and `Northstar.CustomServers` into it from `R2Northstar/mods`, copy `R2Northstar/plugins` over too if u have it, then put this mod in there.
 
 launch with:
 ```
