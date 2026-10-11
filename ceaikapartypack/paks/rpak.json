@@ -1,5 +1,9 @@
 {
   "Preload": {
-    "ceaika_ui.rpak": true
+    "ceaika_ui.rpak": true,
+    "echo_shader.rpak": true
+  },
+  "Postload": {
+    "echo_pilot_materials.rpak": "common.rpak"
   }
 }

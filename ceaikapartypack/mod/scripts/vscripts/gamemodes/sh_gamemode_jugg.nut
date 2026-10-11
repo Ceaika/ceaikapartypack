@@ -12,7 +12,7 @@ struct
 
 void function Sh_GamemodeJugg_Init()
 {
-
+    // The weapon callbacks the pack's keyvalues name (party_weapon_callbacks.nut).
     Party_SetWeaponHandler( "smoke", Jugg_OnSmokeAttack )
     Party_SetWeaponHandler( "upgradecore", Jugg_OnUpgradeCoreAttack )
 	AddCallback_OnCustomGamemodesInit( CreateGamemodeJugg )
@@ -30,7 +30,7 @@ void function CreateGamemodeJugg()
 	GameMode_AddScoreboardColumnData( GAMEMODE_JUGG, "#JUGG_SCOREBOARD_DAMAGE", PGS_DEFENSE_SCORE, 4 )
 	GameMode_SetColor( GAMEMODE_JUGG, [ 224, 112, 48, 255 ] )
 
-	AddPrivateMatchMode( GAMEMODE_JUGG )
+	AddPrivateMatchMode( GAMEMODE_JUGG ) // add to private lobby modes
 
 	#if SERVER
 		GameMode_AddServerInit( GAMEMODE_JUGG, GamemodeJugg_Init )
@@ -53,6 +53,10 @@ void function JuggRegisterNetworkVars()
     RegisterNetworkedVariable("juggEmergencyShieldEnd",SNDC_PLAYER_GLOBAL,SNVT_TIME,0.0)
     RegisterNetworkedVariable("juggEmergencyShieldReady",SNDC_PLAYER_EXCLUSIVE,SNVT_BOOL,false)
     RegisterNetworkedVariable("juggDuelEnd",SNDC_GLOBAL,SNVT_TIME,0.0)
+    // Fold Weapon (Aegis 4): ready to call down; when its beam starts and ends.
+    RegisterNetworkedVariable("juggFoldReady",SNDC_PLAYER_EXCLUSIVE,SNVT_BOOL,false)
+    RegisterNetworkedVariable("juggFoldStart",SNDC_GLOBAL,SNVT_TIME,0.0)
+    RegisterNetworkedVariable("juggFoldEnd",SNDC_GLOBAL,SNVT_TIME,0.0)
     Remote_RegisterFunction("JuggHackBegin")
     Remote_RegisterFunction("JuggHackProgress")
     Remote_RegisterFunction("JuggHackEnd")
@@ -98,13 +102,6 @@ var function Jugg_OnSmokeAttack( entity weapon, WeaponPrimaryAttackParams attack
         return OnWeaponPrimaryAttack_titanability_smoke( weapon, attackParams )
     if ( !IsAlive( owner ) || !owner.IsTitan() || GetGlobalNetInt( "juggPhase" ) != 2 )
         return 0
-    if(owner.GetPlayerNetBool("juggEmergencyShieldReady"))
-    {
-        #if SERVER
-            JuggActivateEmergencyShield(owner)
-        #endif
-        return 0
-    }
     if(Time()<owner.GetPlayerNetTime("juggSmokeReadyAt")) return 0
     return OnWeaponPrimaryAttack_titanability_smoke( weapon, attackParams )
 }
@@ -125,7 +122,7 @@ var function Jugg_OnUpgradeCoreAttack(entity weapon,WeaponPrimaryAttackParams at
     array<entity> stale
     foreach(entity old,float deadline in juggCore.upgradeReadyAt) if(!IsValid(old)) stale.append(old)
     foreach(entity old in stale) delete juggCore.upgradeReadyAt[old]
-
+    // Reserve activation before invoking stock code or starting its animation thread.
     juggCore.upgradeReadyAt[weapon] <- Time()+max(1.0,weapon.GetCoreDuration()+0.5)
     #if SERVER
         print("[Jugg] Upgrade Core begin tier "+soul.GetTitanSoulNetInt("upgradeCount"))

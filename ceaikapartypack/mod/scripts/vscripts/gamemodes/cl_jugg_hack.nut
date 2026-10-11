@@ -4,6 +4,10 @@ global function JuggHackBegin
 global function JuggHackProgress
 global function JuggHackEnd
 
+// Terminal hack minigame: enter five arrows (WASD or arrow keys) while hacking
+// to finish faster. The server checks every input; this file only draws it.
+// Card below the crosshair in the shared party UI style: title, time bar,
+// five arrow tiles (done green / current amber / rest grey), step count, hint.
 const int HACK_STEPS = 5
 
 struct
@@ -126,7 +130,8 @@ void function JuggHackCreate()
     RuiSetFloat(hackHud.title,"thicken",0.2)
     hackHud.count=JuggHackText(18.0)
     hackHud.hint=JuggHackText(17.0)
-
+    // Each tile and its arrow share one topology: the square is rotated to
+    // point the arrow image (ceaika_ui.rpak) and looks the same either way.
     for(int i=0;i<HACK_STEPS;i++)
     {
         hackHud.tileTopos.append(JuggHackTopo())
@@ -155,7 +160,8 @@ void function JuggHackDestroy()
 void function JuggHackHUD()
 {
     while(!IsValid(GetLocalClientPlayer())) WaitFrame()
-
+    // A client has only 64 RUI topologies: this card holds 18 of them, so it
+    // exists only while a hack (or its result strip) is on screen.
     OnThreadEnd(function() { if(hackHud.created) JuggHackDestroy() })
     while(true)
     {
@@ -192,7 +198,7 @@ void function JuggHackDrawCard(bool active,bool result)
     float alpha=active || result ? 1.0 : 0.0
     JuggHackPlace(hackHud.cardTopo,x,y,w,h)
     RuiSetFloat(hackHud.card,"basicImageAlpha",0.8*alpha)
-
+    // Time bar along the top edge: shrinks as the hack runs out.
     float total=max(0.1,hackUI.deadline-hackUI.started)
     float left=result ? 1.0 : clamp((hackUI.deadline-Time())/total,0.0,1.0)
     JuggHackPlace(hackHud.barTopo,x,y,w,4.0*s)
@@ -200,7 +206,8 @@ void function JuggHackDrawCard(bool active,bool result)
     RuiSetFloat(hackHud.bar,"basicImageAlpha",alpha)
     RuiSetFloat3(hackHud.fill,"basicImageColor",accent)
     RuiSetFloat(hackHud.fill,"basicImageAlpha",alpha)
-
+    // Center text: msgPos is an offset from the screen middle; text draws a
+    // little above its position, so offsets are set from the visible glyphs.
     RuiSetString(hackHud.title,"msgText",result ? hackUI.result : "TERMINAL OVERRIDE")
     RuiSetFloat3(hackHud.title,"msgColor",result ? accent : <0.9,0.96,1.0>)
     RuiSetFloat2(hackHud.title,"msgPos",<0,(y+(result ? 28.0 : 30.0)*s)/height-0.5,0>)
@@ -227,7 +234,7 @@ void function JuggHackDrawTile(int i,bool active)
     float x=x0+i*(size+gap)
     float y=height*0.5+70.0*s+62.0*s
     bool error=Time()<hackUI.errorUntil
-
+    // Done: solid green. Current: amber outline, pulsing. Still to enter: grey outline.
     vector tile=<0.1,0.11,0.13>
     vector arrow=<0.6,0.65,0.7>
     asset image=$"rui/ceaika/hack_arrow"
@@ -244,6 +251,7 @@ void function JuggHackDrawTile(int i,bool active)
     RuiSetFloat(hackHud.arrows[i],"basicImageAlpha",active ? arrowAlpha : 0.0)
 }
 
+// The arrow image points up; turn the square so it points 0 up, 1 right, 2 down, 3 left.
 void function JuggHackPlaceTurned(var topo,float x,float y,float size,int direction)
 {
     if(direction==1) RuiTopology_UpdatePos(topo,<x+size,y,0>,<0,size,0>,< -size,0,0>)

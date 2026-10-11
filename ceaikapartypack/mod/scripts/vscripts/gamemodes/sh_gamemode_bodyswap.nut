@@ -1,6 +1,11 @@
 global function Sh_BodySwap_Init
 global const string GAMEMODE_BODYSWAP = "bodyswap"
 
+// Body Swap: team deathmatch with titans. At a random moment in every
+// 10 second window, every pilot swaps bodies with a random enemy pilot and
+// every titan with a random enemy titan: position, view, momentum, health
+// and the whole loadout go across. Falling to your death right after a swap
+// gives the kill to whoever you swapped with.
 void function Sh_BodySwap_Init()
 {
     AddCallback_OnCustomGamemodesInit( BodySwap_Create )
@@ -10,7 +15,7 @@ void function Sh_BodySwap_Init()
 void function BodySwap_Network()
 {
     if ( GAMETYPE != GAMEMODE_BODYSWAP ) return
-
+    // When the announced swap happens (0: none announced), for the countdown.
     RegisterNetworkedVariable( "bsNextSwap", SNDC_GLOBAL, SNVT_TIME, 0.0 )
 }
 
@@ -21,7 +26,7 @@ void function BodySwap_Create()
     GameMode_SetDesc( GAMEMODE_BODYSWAP, "#PL_bodyswap_desc" )
     GameMode_SetGameModeAnnouncement( GAMEMODE_BODYSWAP, "phunt_modeDesc" )
     GameMode_SetIcon( GAMEMODE_BODYSWAP, $"ui/menu/playlist/tdm" )
-    GameMode_SetDefaultScoreLimits( GAMEMODE_BODYSWAP, 50, 0 )
+    GameMode_SetDefaultScoreLimits( GAMEMODE_BODYSWAP, 100, 0 )
     GameMode_SetDefaultTimeLimits( GAMEMODE_BODYSWAP, 10, 0.0 )
     GameMode_AddScoreboardColumnData( GAMEMODE_BODYSWAP, "#SCOREBOARD_KILLS", PGS_PILOT_KILLS, 2 )
     GameMode_AddScoreboardColumnData( GAMEMODE_BODYSWAP, "#SCOREBOARD_TITAN_KILLS", PGS_TITAN_KILLS, 1 )

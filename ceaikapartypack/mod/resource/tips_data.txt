@@ -1,7 +1,9 @@
 
+// Ceaika's Partypack: the loading tips are TIP_001... in
+// ceaikapartypack_localisation_english.txt (artifacts/ceaika-loadscreen/tips.txt).
 Tips
 {
-	LastTipIndex			30
+	LastTipIndex			32
 	NewTipLevelDifference	1
 	NewTipDisplayChance		0.7
 	LevelRequirements

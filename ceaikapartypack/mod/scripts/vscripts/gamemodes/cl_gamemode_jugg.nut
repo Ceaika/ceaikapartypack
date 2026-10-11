@@ -8,6 +8,7 @@ global function JuggTitanHUDMetadata
 global function JuggPowerHealthUpdate
 global function JuggDamageFlyout
 
+// Engine highlight IDs; the stock sh_highlight.gnut names are file-local.
 const JUGG_HIGHLIGHT_CONTEXT_ENEMY = 2
 
 vector juggFinaleOrigin = <0,0,0>
@@ -32,7 +33,9 @@ void function JuggBatteryHealFeedback(int hullAdded,int shieldAdded)
     juggHealShield = shieldAdded
     juggHealFeedbackRound = GetGlobalNetInt("juggRound")
     juggHealFeedbackUntil = Time()+2.5
-    PartyUI_Popup("BATTERY COLLECTED",format("+%s hull  /  +%s shield",JuggComma(hullAdded),JuggComma(shieldAdded)),<0.3,0.92,0.58>,2 )
+    PartyUI_Popup("BATTERY COLLECTED",format("+%s hull  /  +%s shield",JuggComma(hullAdded),JuggComma(shieldAdded)),<0.3,0.92,0.58>,2 /* success */)
+    // The campaign's battery pickup: green cockpit flash, screen particles, sound and rumble.
+    PlayBatteryScreenFX(player,false)
 
 }
 
@@ -58,7 +61,7 @@ void function JuggTitanHUDMetadata(int shieldMax,int segments,int aegis,bool doo
 {
     juggHUDShieldMax = maxint(0,shieldMax)
     juggHUDSegments = maxint(1,segments)
-    juggHUDAegis = minint(3,maxint(0,aegis))
+    juggHUDAegis = minint(4,maxint(0,aegis))
     juggHUDDoomed = doomed
     juggHUDMetadataRound = GetGlobalNetInt("juggRound")
 }
@@ -68,6 +71,19 @@ void function JuggChanceUpdate(int tickets) { juggChanceTickets = tickets; }
 
 void function Cl_GamemodeJugg_Init()
 {
+    PrecacheParticleSystem( $"P_xo_shield_up" )   // the Shield Override's cockpit surge
+    // 1 is unbound on a Titan, so this takes nothing away.
+    RegisterButtonPressedCallback( KEY_1, void function( entity unused ) {
+        entity player = GetLocalClientPlayer()
+        if ( !IsValid( player ) || !player.GetPlayerNetBool( "juggEmergencyShieldReady" ) ) return
+        player.ClientCommand( "jugg_override" )
+    } )
+    // 2 calls down the Fold Weapon (Aegis 4).
+    RegisterButtonPressedCallback( KEY_2, void function( entity unused ) {
+        entity player = GetLocalClientPlayer()
+        if ( !IsValid( player ) || !player.GetPlayerNetBool( "juggFoldReady" ) ) return
+        player.ClientCommand( "jugg_fold" )
+    } )
     JuggHackClientInit()
     foreach (int team in [TEAM_IMC,TEAM_MILITIA])
     {
@@ -88,6 +104,7 @@ void function Cl_GamemodeJugg_Init()
     thread JuggAegisHUDThink()
     thread JuggOutlineThink()
     thread JuggSabotageViewThink()
+    thread JuggCockpitKeysThink()
 }
 
 void function JuggOnBatteryCreated( entity battery )
@@ -98,7 +115,7 @@ void function JuggOnBatteryCreated( entity battery )
 void function JuggBatteryIcon( entity battery )
 {
 	battery.EndSignal( "OnDestroy" )
-
+	// Entity creation can precede the local player's cockpit during map loading.
 	while ( !IsValid( GetLocalViewPlayer() ) )
 		WaitFrame()
 	var rui = CreateCockpitRui( $"ui/fra_battery_icon.rpak" )
@@ -107,12 +124,16 @@ void function JuggBatteryIcon( entity battery )
 	OnThreadEnd( function() : ( rui ) { RuiDestroyIfAlive( rui ); } )
 	while ( true )
 	{
-
+		// Ground batteries are objectives. Hide carried batteries, including those
+		// a hunter has picked up to deny the Juggernaut a heal.
 		RuiSetBool( rui, "isVisible", !IsValid( battery.GetParent() ) && GetGameState() == eGameState.Playing )
 		wait 0.1
 	}
 }
 
+// Round card: role and round, large clock with a round-progress bar, status
+// lines, the round's special event and the next-Juggernaut chance. Positioned
+// by jugg_hud_x / jugg_hud_y (fractions of the screen, top-left of the card).
 struct
 {
     var cardTopo
@@ -130,7 +151,7 @@ struct
     var eventDetail
     var chance
     var damage
-
+    // Values computed each tick, then drawn.
     string title = ""
     string timer = ""
     string detail = ""
@@ -222,7 +243,7 @@ void function JuggHudCompute(entity player)
             if (GetGlobalNetInt("juggRounds") > 0) juggHud.title += "/" + GetGlobalNetInt("juggRounds")
             juggHud.timer = format("%d:%02d",remaining/60,remaining%60)
             if (remaining <= 30) juggHud.timerColor = <1.0,0.35,0.25>
-
+            // Progress bar: remember the longest remaining time seen this round.
             int key = GetGlobalNetInt("juggRound")
             if (key != juggHud.progressKey || left > juggHud.progressTotal) { juggHud.progressKey = key; juggHud.progressTotal = max(1.0,left); }
             juggHud.progress = clamp(left/juggHud.progressTotal,0.0,1.0)
@@ -275,6 +296,8 @@ void function JuggHudHunterStatus(entity player)
     else if (player.GetPlayerNetInt("juggBoost") > 0) juggHud.detail = JuggBoostLine(player.GetPlayerNetInt("juggBoost")-1)
 }
 
+// The boost you hold and how to use it, for the round card (juggBoost - 1: the
+// same order as _jugg_terminals.nut's rewardNames).
 string function JuggBoostLine(int reward)
 {
     array<string> names = ["AMPED WEAPONS","DOUBLE TETHER","TICK STRIKE","CHARGE RIFLE","STALKER PODS","TITAN CHALLENGE","SABOTAGE BATTERY"]
@@ -282,6 +305,7 @@ string function JuggBoostLine(int reward)
     return name + "  /  PRESS BOOST"
 }
 
+// Charge rifle, shield override, duel, special event and sabotage lines.
 void function JuggHudExtras(entity player,int phase)
 {
     juggHud.eventTitle = ""
@@ -294,8 +318,12 @@ void function JuggHudExtras(entity player,int phase)
                 juggHud.detail += (juggHud.detail == "" ? "" : "\n") + "CHARGE RIFLE  /  " + int(ceil(player.GetPlayerNetTime("juggSmokeReadyAt")-Time())) + "s"
     }
     if (player.GetPlayerNetTime("juggEmergencyShieldEnd") > Time()) juggHud.detail += "\nSHIELD OVERRIDE  /  " + int(ceil(player.GetPlayerNetTime("juggEmergencyShieldEnd")-Time())) + "s"
-    else if (player.GetPlayerNetBool("juggEmergencyShieldReady")) juggHud.detail += "\nSHIELD OVERRIDE READY  /  PRESS BOOST"
-    else if (player.GetPlayerNetBool("juggIsBoss") && juggHUDMetadataRound == GetGlobalNetInt("juggRound") && juggHUDAegis == 3) juggHud.detail += "\nSHIELD OVERRIDE USED"
+    else if (player.GetPlayerNetBool("juggEmergencyShieldReady")) juggHud.detail += "\nSHIELD OVERRIDE READY  /  PRESS 1"
+    else if (player.GetPlayerNetBool("juggIsBoss") && juggHUDMetadataRound == GetGlobalNetInt("juggRound") && juggHUDAegis >= 3) juggHud.detail += "\nSHIELD OVERRIDE USED"
+    float foldStart = GetGlobalNetTime("juggFoldStart")
+    float foldEnd = GetGlobalNetTime("juggFoldEnd")
+    if (foldEnd > Time()) juggHud.detail += "\nFOLD WEAPON  /  " + (foldStart > Time() ? "CHARGING" : int(ceil(foldEnd-Time())) + "s")
+    else if (player.GetPlayerNetBool("juggFoldReady")) juggHud.detail += "\nFOLD WEAPON READY  /  PRESS 2"
     if (GetGlobalNetTime("juggDuelEnd") > Time()) juggHud.detail += "\nTITAN DUEL  /  " + int(ceil(GetGlobalNetTime("juggDuelEnd")-Time())) + "s"
     array<string> specials = ["","LOW GRAVITY","TWIN JUGGERNAUTS","OVERDRIVE","UNLIMITED ABILITIES","","CORE COMBAT","FAST PILOTS","AIR CONTROL","BOTTOMLESS MAGAZINES"]
     array<string> descriptions = ["","Gravity reduced to 40%","Two Titans at half health","Unlimited pilot abilities dashes","No cooldowns for anyone","","Laser Core only, always charged","Pilots move twice as fast","Full air control for pilots","Magazines never run dry"]
@@ -306,7 +334,7 @@ void function JuggHudExtras(entity player,int phase)
         juggHud.detail = "SABOTAGED  /  " + int(ceil(player.GetPlayerNetTime("juggSabotageEnd")-Time())) + "s"
         juggHud.statusColor = <1.0,0.3,0.2>
     }
-
+    // Drop a leading blank line when only the extras added text.
     if (juggHud.detail.find("\n") == 0) juggHud.detail = juggHud.detail.slice(1)
 }
 
@@ -320,10 +348,10 @@ void function JuggHudDraw()
     float y = clamp(GetConVarFloat("jugg_hud_y"),0.0,0.72)*height
     bool shown = juggHud.title != ""
     int statusLines = juggHud.detail == "" ? 0 : split(juggHud.detail,"\n").len()
-
+    // Collapse the clock rows when there is no clock (waiting for players).
     float statusY = y + (juggHud.timer == "" ? 38.0 : (juggHud.progress >= 0.0 ? 100.0 : 86.0))*s
     float eventY = statusY + (statusLines*23.0 + (statusLines > 0 ? 8.0 : 0.0))*s
-
+    // Hunters: your damage this round and the next promotion goal.
     string damage = shown ? JuggCardDamageLine() : ""
     float damageY = eventY + (juggHud.eventTitle != "" ? 52.0 : 0.0)*s
     float chanceY = damageY + (damage != "" ? 23.0 : 0.0)*s
@@ -356,6 +384,8 @@ void function JuggHudLine(var rui,string text,vector color,float alpha,float x,f
     RuiSetFloat2(rui,"msgPos",<x/width,y/height,0>)
 }
 
+// Discover by the server-assigned script name, including late replication and
+// joining a match after crates spawned. Do not give up after a one-second window.
 void function JuggTerminalIconsThink()
 {
     table<entity, bool> tracked
@@ -385,7 +415,8 @@ void function JuggTerminalIcon(entity crate)
     while (!IsValid(GetLocalViewPlayer())) WaitFrame()
     var rui = CreateCockpitRui($"ui/overhead_icon_generic.rpak",MINIMAP_Z_BASE-20)
     var label = CreateFullscreenRui($"ui/cockpit_console_text_top_left.rpak",100)
-
+    // Health bar rectangles for harvesters only: a client has just 64 RUI
+    // topologies, and hack panels never show a bar.
     var backTopo = power ? RuiTopology_CreatePlane(<0,0,0>,<1,0,0>,<0,1,0>,false) : null
     var fillTopo = power ? RuiTopology_CreatePlane(<0,0,0>,<1,0,0>,<0,1,0>,false) : null
     var back = power ? RuiCreate($"ui/basic_image.rpak",backTopo,RUI_DRAW_HUD,101) : null
@@ -436,7 +467,7 @@ void function JuggTerminalIcon(entity crate)
             float distance = Distance(player.GetOrigin(),crate.GetOrigin())
             float size = GraphCapped(distance,160.0,2500.0,44.0,32.0)
             RuiSetFloat2(rui,"iconSize",<size,size,0>)
-
+            // Keep labels offscreen when their objective is behind the camera.
             if (DotProduct(player.GetViewVector(),pos-player.EyePosition()) > 0.0)
             {
                 array screen = expect array(Hud.ToScreenSpace(pos))
@@ -471,6 +502,7 @@ void function JuggTerminalIcon(entity crate)
     }
 }
 
+// Independent nearby prompt: remains readable even when the engine's use hint is hidden.
 void function JuggTerminalPromptThink()
 {
     while (!IsValid(GetLocalViewPlayer())) WaitFrame()
@@ -504,6 +536,7 @@ void function JuggTerminalPromptThink()
     }
 }
 
+// Use the native FD upgrade animation for the Juggernaut, not custom rectangles.
 void function JuggAegisHUDThink()
 {
     var panel = null
@@ -526,7 +559,7 @@ void function JuggAegisHUDThink()
         {
             panel = CreateTitanCockpitRui($"ui/ajax_cockpit_fd.rpak")
             ownedPanel[0] = panel
-
+            // Match the native FD panel initialization, including disabled eject timers.
             RuiSetFloat(panel,"ejectManualTimeOut",EJECT_FADE_TIME)
             RuiSetFloat(panel,"ejectButtonTimeOut",TITAN_EJECT_MAX_PRESS_DELAY)
             RuiSetGameTime(panel,"ejectManualStartTime",-60.0)
@@ -537,14 +570,14 @@ void function JuggAegisHUDThink()
             for (int i=1;i<=7;i++)
             {
                 RuiSetImage(panel,"upgradeIcon"+i,icon)
-                string label = i == 1 ? "Shield capacity +50%" : (i <= 3 ? "Combat upgrade " + (i-1) : "")
+                string label = i == 1 ? "Shield capacity +50%" : (i <= 3 ? "Combat upgrade " + (i-1) : (i == 4 ? "Fold Weapon" : ""))
                 RuiSetString(panel,"upgradeName"+i,label)
             }
         }
         int round = GetGlobalNetInt("juggRound")
         if (shownTier != juggHUDAegis || shownRound != round)
         {
-            RuiSetBool(panel,"isFirstBoot",true)
+            RuiSetBool(panel,"isFirstBoot",true) // replay the native upgrade-fill sequence for each earned tier
             RuiSetInt(panel,"titanRank",juggHUDAegis)
             RuiSetInt(panel,"maxActiveIndex",juggHUDAegis)
             RuiSetGameTime(panel,"updateTime",Time())
@@ -567,12 +600,13 @@ void function JuggOutlineThink()
             if(!IsValid(viewer) || !IsAlive(boss) || !boss.IsTitan() || boss.GetTeam()!=TEAM_IMC || viewer.GetTeam()==boss.GetTeam()) continue
             bool show=GetCurrentPlaylistVarInt("jugg_always_marked",1)==1 && GetGlobalNetInt("juggPhase")==2 && Time()>=GetGlobalNetTime("juggOutlineAt") && viewer.GetTeam()!=boss.GetTeam() && DistanceSqr(viewer.GetOrigin(),boss.GetOrigin())>500*500
             boss.Highlight_SetCurrentContext(JUGG_HIGHLIGHT_CONTEXT_ENEMY)
-
+            // Shader functions and health color are replicated by JuggBossHighlight.
             boss.Highlight_ResetFlags()
             boss.Highlight_SetNearFadeDist(0.0)
             boss.Highlight_SetFarFadeDist(32000.0)
             boss.Highlight_SetVisibilityType(HIGHLIGHT_VIS_ALWAYS)
-
+            // Setting shader functions alone does not activate the highlight.
+            // Refresh a short lifetime so death/role changes cannot leave it on.
             if(show)
             {
                 boss.Highlight_SetFadeInTime(0.0)
@@ -608,12 +642,18 @@ void function JuggBatteryEvent(int event)
     juggBatteryEventType=event
     juggBatteryEventUntil=Time()+3.0
     juggBatteryEventRound=GetGlobalNetInt("juggRound")
-    if(event==1) PartyUI_Popup("BATTERY STOLEN","Hold it for 5 seconds to deny the heal",<0.3,0.92,0.58>,2 ,3.0)
-    else if(event==2) PartyUI_Popup("BATTERY DENIED","The Titan lost that heal | +1 point",<0.3,0.92,0.58>,2 )
-
+    if(event==1) PartyUI_Popup("BATTERY STOLEN","Hold it for 5 seconds to deny the heal",<0.3,0.92,0.58>,2 /* success */,3.0)
+    else if(event==2) PartyUI_Popup("BATTERY DENIED","The Titan lost that heal | +1 point",<0.3,0.92,0.58>,2 /* success */)
+    // The Titan loses a battery: the red marked-for-death burst.
     else if(event==3 || event==4) thread JuggCockpitBurst($"P_MFD_unmark",1.5,"")
 }
 
+// ---------------------------------------------------------------- Juggernaut bar
+// Minimal, top middle under the score: the Titan's name and percentage, a thin
+// health line with a fading chunk for fresh damage, a hairline shield above it,
+// and a thin Aegis line below. Your hits float off the end of the bar. The
+// Juggernaut sees only its Aegis line. Your damage and next promotion are in
+// the round card.
 const int JUGG_FLYOUT_MAX = 8
 struct JuggFlyout
 {
@@ -654,6 +694,8 @@ struct
     int myTier = 0
 } juggBar
 
+// Server: your damage since the last batch, your round total, the next promotion
+// goal and your rank (0 none, 1 Veteran, 2 Vanguard).
 void function JuggDamageFlyout(int amount,int total,int next,int tier)
 {
     juggBar.myRound = GetGlobalNetInt("juggRound")
@@ -681,6 +723,7 @@ string function JuggComma(int value)
     return result
 }
 
+// Round card line for hunters: damage this round and the next promotion goal.
 string function JuggCardDamageLine()
 {
     entity player = GetLocalClientPlayer()
@@ -783,7 +826,7 @@ void function JuggBarDraw()
     float y = height*0.172
     float barY = y+24.0*s
     JuggBarDrawHull(live,showHull,x,y,barY,w,s,dt)
-
+    // In the cockpit the Titan's own health bar sits just below: keep clear of it.
     JuggBarDrawAegis(live,x,boss ? y-6.0*s : barY+11.0*s,w,s)
     JuggBarDrawFlyouts(showHull,x,barY,w,s)
 }
@@ -795,7 +838,7 @@ void function JuggBarDrawHull(bool live,bool showHull,float x,float y,float barY
     int hp = JuggGetHealthNet("juggHull")
     int maximum = JuggGetHealthNet("juggHullMax")
     int shield = JuggGetHealthNet("juggShield")
-
+    // A soft chunk holds briefly after damage, then drains to the new value.
     float frac = live ? clamp(hp.tofloat()/maxint(1,maximum),0.0,1.0) : 1.0
     if (!live) juggBar.trailFrac = 1.0
     if (frac < juggBar.hullFrac-0.0001) juggBar.trailHoldUntil = Time()+0.4
@@ -824,30 +867,32 @@ void function JuggBarDrawHull(bool live,bool showHull,float x,float y,float barY
     RuiSetFloat(juggBar.percent,"msgAlpha",showHull ? 0.9 : 0.0)
 }
 
+// A thin line filling across four tiers as the Titan gets pilot kills.
 void function JuggBarDrawAegis(bool live,float x,float aY,float w,float s)
 {
     float width = GetScreenSize()[0]
     float height = GetScreenSize()[1]
-    int tier = minint(3,maxint(0,GetGlobalNetInt("juggAegisTier")))
+    int tier = minint(4,maxint(0,GetGlobalNetInt("juggAegisTier")))
     int perTier = maxint(1,GetGlobalNetInt("juggAegisPerTier"))
-    int kills = tier >= 3 ? 0 : minint(perTier-1,maxint(0,GetGlobalNetInt("juggAegisKills")))
+    int kills = tier >= 4 ? 0 : minint(perTier-1,maxint(0,GetGlobalNetInt("juggAegisKills")))
     if (tier > juggBar.shownTier) juggBar.tierFlashUntil = Time()+0.8
     juggBar.shownTier = tier
-    float aegisFrac = (tier+kills.tofloat()/perTier)/3.0
+    float aegisFrac = (tier+kills.tofloat()/perTier)/4.0
     JuggHudPlace(juggBar.aegisTrackTopo,x,aY,w,2.0*s)
     JuggHudPlace(juggBar.aegisFillTopo,x,aY,max(0.5,w*aegisFrac),2.0*s)
     bool flash = Time() < juggBar.tierFlashUntil && int(Time()*10)%2 == 0
     RuiSetFloat3(juggBar.aegisFill,"basicImageColor",flash ? <1,1,1> : <1.0,0.72,0.3>)
     JuggBarShow(juggBar.aegisTrack,live,0.5)
     JuggBarShow(juggBar.aegisFill,live && aegisFrac > 0.0,1.0)
-    string aegis = "AEGIS " + tier + "/3"
-    if (tier >= 3) aegis += "    MAX"
+    string aegis = "AEGIS " + tier + "/4"
+    if (tier >= 4) aegis += "    MAX"
     else aegis += "    " + (perTier-kills) + ((perTier-kills) == 1 ? " KILL" : " KILLS") + " TO NEXT"
     RuiSetString(juggBar.aegisText,"msgText",aegis)
     RuiSetFloat2(juggBar.aegisText,"msgPos",<x/width,(aY+5.0*s)/height,0>)
     RuiSetFloat(juggBar.aegisText,"msgAlpha",live ? 0.8 : 0.0)
 }
 
+// Your hits float up off the end of the bar and fade.
 void function JuggBarDrawFlyouts(bool showHull,float x,float barY,float w,float s)
 {
     float width = GetScreenSize()[0]
@@ -871,6 +916,10 @@ void function JuggBarDrawFlyouts(bool showHull,float x,float barY,float w,float 
     }
 }
 
+// ---------------------------------------------------------------- core icon
+// The stock earn meter sets the core icon once, when it switches to core mode.
+// If the core weapon had not arrived on this client yet, it stays a blank
+// square for the whole life. Refresh it whenever the core or its state changes.
 void function JuggCoreIconThink()
 {
     string last = ""
@@ -894,6 +943,8 @@ void function JuggCoreIconThink()
     }
 }
 
+// ---------------------------------------------------------------- special rounds
+// A special round starts with the marked-for-death screen effect and sound.
 void function JuggSpecialFXThink()
 {
     int shownRound = -1
@@ -920,4 +971,153 @@ void function JuggCockpitBurst(asset effect,float life,string sound)
     int fx = StartParticleEffectOnEntity(cockpit,GetParticleSystemIndex(effect),FX_PATTACH_ABSORIGIN_FOLLOW,-1)
     wait life
     if (IsValid(cockpit) && EffectDoesExist(fx)) EffectStop(fx,true,false)
+}
+
+// ---------------------------------------------------------------- cockpit key buttons
+// Abilities the Juggernaut fires with a number key get a button in the bottom
+// right of the cockpit: a key cap, the name and its state. Ready, it breathes
+// (a slow zoom with a glow flashing out from it); running, the cap lights up and
+// a bar drains. They are drawn on the same curved surface as the stock cockpit
+// HUD (RUI_DRAW_COCKPIT), so they sway and shake with the Titan's cockpit like
+// the stock instruments.
+//   1  Shield Override (Aegis 3), cyan
+//   2  Fold Weapon (Aegis 4), orange, above it
+const float JUGG_KEY_U = 0.835      // card centre across the cockpit HUD (0 left, 1 right)
+const float JUGG_KEY_V = 0.775      // the lowest card's centre down it
+const float JUGG_KEY_STEP = 0.118   // the next card up
+const float JUGG_KEY_W = 0.165      // card size, fractions of the cockpit HUD
+const float JUGG_KEY_H = 0.098
+
+// A patch of the cockpit HUD's sphere, centred at (u,v) across it and w x h of
+// it in size. The stock HUD is one sphere around COCKPIT_RUI_OFFSET; turning the
+// patch's axes by the matching angles puts it exactly on that surface.
+void function JuggCockpitPatch( var topo, float u, float v, float w, float h )
+{
+    float[2] screen = GetScreenSize()
+    vector origin = screen[0] / screen[1] <= 1.6 ? COCKPIT_RUI_OFFSET_1610_TEMP : COCKPIT_RUI_OFFSET
+    float yaw = ( u - 0.5 ) * COCKPIT_RUI_WIDTH * DEG_TO_RAD
+    float pitch = ( v - 0.5 ) * COCKPIT_RUI_HEIGHT * DEG_TO_RAD
+    vector right = < -sin( yaw ), -cos( yaw ), 0 >
+    vector down = < -cos( yaw ) * sin( pitch ), sin( yaw ) * sin( pitch ), -cos( pitch ) >
+    RuiTopology_UpdateSphereArcs( topo, max( 0.01, w * COCKPIT_RUI_WIDTH ), max( 0.01, h * COCKPIT_RUI_HEIGHT ), COCKPIT_RUI_SUBDIV )
+    RuiTopology_UpdatePos( topo, origin, right, down )
+}
+
+table function JuggCockpitRect( vector color, int sort )
+{
+    var topo = RuiTopology_CreateSphere( COCKPIT_RUI_OFFSET, <0,-1,0>, <0,0,-1>, COCKPIT_RUI_RADIUS, 1.0, 1.0, COCKPIT_RUI_SUBDIV )
+    var rui = RuiCreate( $"ui/basic_image.rpak", topo, RUI_DRAW_COCKPIT, sort )
+    RuiSetFloat3( rui, "basicImageColor", color )
+    RuiSetFloat( rui, "basicImageAlpha", 0.0 )
+    return { topo = topo, rui = rui }
+}
+
+var function JuggCockpitText( float size, vector color )
+{
+    var rui = CreateCockpitRui( $"ui/cockpit_console_text_top_left.rpak", 103 )
+    RuiSetInt( rui, "maxLines", 1 )
+    RuiSetInt( rui, "lineNum", 0 )
+    RuiSetFloat( rui, "msgFontSize", size )
+    RuiSetFloat( rui, "thicken", 0.0 )
+    RuiSetFloat3( rui, "msgColor", color )
+    RuiSetFloat( rui, "msgAlpha", 0.0 )
+    return rui
+}
+
+table function JuggCockpitKeyCreate( string key, string name, vector color )
+{
+    return { key = key, name = name, color = color, shownAt = 0.0,
+        glow = JuggCockpitRect( color, 99 ), back = JuggCockpitRect( <0.02,0.035,0.05>, 100 ),
+        cap = JuggCockpitRect( color, 101 ), bar = JuggCockpitRect( color, 102 ),
+        keyText = JuggCockpitText( 64.0, <0.02,0.035,0.05> ), nameText = JuggCockpitText( 24.0, <0.92,0.96,1.0> ),
+        stateText = JuggCockpitText( 19.0, color ) }
+}
+
+void function JuggCockpitKeyHide( table b )
+{
+    foreach ( string part in [ "glow", "back", "cap", "bar" ] ) RuiSetFloat( b[part].rui, "basicImageAlpha", 0.0 )
+    foreach ( string part in [ "keyText", "nameText", "stateText" ] ) RuiSetFloat( b[part], "msgAlpha", 0.0 )
+    b.shownAt = 0.0
+}
+
+// state: what the second line says; frac: how full the drain bar is (0: none).
+void function JuggCockpitKeyDraw( table b, float v, bool ready, bool active, string state, float frac )
+{
+    if ( b.shownAt == 0.0 ) b.shownAt = Time()
+    float t = Time() - expect float( b.shownAt )
+    vector color = expect vector( b.color )
+    float pop = min( 1.0, t / 0.25 )
+    float beat = ready ? 0.5 + 0.5 * sin( t * 2.0 * PI * 0.9 ) : 0.0
+    float zoom = ( 0.6 + 0.4 * pop ) * ( 1.0 + 0.07 * beat )
+    float w = JUGG_KEY_W * zoom
+    float h = JUGG_KEY_H * zoom
+    float aspect = COCKPIT_RUI_WIDTH / COCKPIT_RUI_HEIGHT   // one unit of h is this many of w
+    float u = JUGG_KEY_U
+    float left0 = u - w * 0.5
+    float top0 = v - h * 0.5
+    JuggCockpitPatch( b.back.topo, u, v, w, h )
+    RuiSetFloat( b.back.rui, "basicImageAlpha", 0.78 * pop )
+    float glow = ready ? 1.0 + 0.22 * ( 1.0 - beat ) : 1.0
+    JuggCockpitPatch( b.glow.topo, u, v, w * glow + 0.006, h * glow + 0.006 * aspect )
+    RuiSetFloat( b.glow.rui, "basicImageAlpha", ( ready ? 0.10 + 0.30 * beat : 0.35 ) * pop )
+    // The key cap: a square on the left of the card.
+    float capH = h * 0.72
+    float capW = capH / aspect
+    float capU = left0 + h * 0.14 / aspect + capW * 0.5
+    JuggCockpitPatch( b.cap.topo, capU, v, capW, capH )
+    RuiSetFloat3( b.cap.rui, "basicImageColor", active ? <1.0,1.0,1.0> : color )
+    RuiSetFloat( b.cap.rui, "basicImageAlpha", ( active ? 0.95 : 0.75 + 0.25 * beat ) * pop )
+    // The glyph is drawn from its top-left corner: centre a 64-unit digit in the cap.
+    RuiSetString( b.keyText, "msgText", expect string( b.key ) )
+    RuiSetFloat2( b.keyText, "msgPos", < capU - 0.0040 * zoom, v - 0.0265 * zoom, 0 > )
+    RuiSetFloat( b.keyText, "msgAlpha", pop )
+    float textU = capU + capW * 0.5 + h * 0.12 / aspect
+    RuiSetString( b.nameText, "msgText", expect string( b.name ) )
+    RuiSetFloat2( b.nameText, "msgPos", < textU, top0 + h * 0.14, 0 > )
+    RuiSetFloat( b.nameText, "msgAlpha", pop )
+    RuiSetString( b.stateText, "msgText", state )
+    RuiSetFloat3( b.stateText, "msgColor", active ? <1.0,1.0,1.0> : color )
+    RuiSetFloat2( b.stateText, "msgPos", < textU, top0 + h * 0.54, 0 > )
+    RuiSetFloat( b.stateText, "msgAlpha", pop )
+    // While it runs, a bar along the bottom of the card drains.
+    float barW = ( w - h * 0.12 / aspect ) * clamp( frac, 0.0, 1.0 )
+    JuggCockpitPatch( b.bar.topo, left0 + h * 0.06 / aspect + barW * 0.5, top0 + h * 0.93, max( 0.001, barW ), h * 0.06 )
+    RuiSetFloat( b.bar.rui, "basicImageAlpha", frac > 0.0 ? 0.9 : 0.0 )
+}
+
+void function JuggCockpitKeysThink()
+{
+    table shield = JuggCockpitKeyCreate( "1", "SHIELD OVERRIDE", <0.35,0.82,1.0> )
+    table foldKey = JuggCockpitKeyCreate( "2", "FOLD WEAPON", <1.0,0.42,0.14> )
+    float shieldSeenEnd = 0.0
+    while ( true )
+    {
+        WaitFrame()
+        entity player = GetLocalViewPlayer()
+        bool titan = IsValid( player ) && IsAlive( player ) && player.IsTitan()
+        // 1: Shield Override, 5 seconds of full shields.
+        bool shieldReady = titan && player.GetPlayerNetBool( "juggEmergencyShieldReady" )
+        float shieldLeft = titan ? player.GetPlayerNetTime( "juggEmergencyShieldEnd" ) - Time() : 0.0
+        // Just fired: the Upgrade Core's shield surge washes over the cockpit glass.
+        float shieldEnd = titan ? player.GetPlayerNetTime( "juggEmergencyShieldEnd" ) : 0.0
+        if ( shieldLeft > 0.0 && shieldEnd != shieldSeenEnd && IsValid( player.GetCockpit() ) )
+            StartParticleEffectOnEntity( player.GetCockpit(), GetParticleSystemIndex( $"P_xo_shield_up" ), FX_PATTACH_ABSORIGIN_FOLLOW, -1 )
+        shieldSeenEnd = shieldEnd
+        if ( shieldReady || shieldLeft > 0.0 )
+            JuggCockpitKeyDraw( shield, JUGG_KEY_V, shieldReady, shieldLeft > 0.0, shieldLeft > 0.0 ? format( "ACTIVE  %.1f s", shieldLeft ) : "READY", shieldLeft / 5.0 )
+        else JuggCockpitKeyHide( shield )
+        // 2: Fold Weapon, only on the Juggernaut that called it.
+        bool foldReady = titan && player.GetPlayerNetBool( "juggFoldReady" )
+        bool foldMine = titan && player.GetPlayerNetBool( "juggIsBoss" )
+        float foldStart = GetGlobalNetTime( "juggFoldStart" )
+        float foldLeft = GetGlobalNetTime( "juggFoldEnd" ) - Time()
+        bool foldActive = foldMine && foldLeft > 0.0
+        if ( foldReady || foldActive )
+        {
+            string state = foldReady ? "READY" : ( foldStart > Time() ? "CHARGING" : format( "ENGAGED  %.1f s", foldLeft ) )
+            float span = max( 0.1, GetGlobalNetTime( "juggFoldEnd" ) - foldStart )
+            JuggCockpitKeyDraw( foldKey, JUGG_KEY_V - JUGG_KEY_STEP, foldReady, foldActive, state, foldActive && foldStart <= Time() ? foldLeft / span : 0.0 )
+        }
+        else JuggCockpitKeyHide( foldKey )
+    }
 }

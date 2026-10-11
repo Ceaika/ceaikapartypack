@@ -25,7 +25,7 @@ var function OnWeaponPrimaryAttackAnimEvent_burncardweapon( entity weapon, Weapo
         #if SERVER
             return JuggActivateBoost(ownerPlayer) ? weapon.GetWeaponSettingInt(eWeaponVar.ammo_min_to_fire) : 0
         #else
-            return 0
+            return 0 // server validates support placement; rejected attempts retain the charge
         #endif
     }
 

@@ -95,6 +95,10 @@ playlists
                 jugg_monarch_core_multiplier 1.0
                 jugg_wave_spawn_spacing 0.2
                 jugg_core_passive_seconds 90
+                jugg_smoke_seconds 30
+                jugg_smoke_seconds_per_hunter 2
+                jugg_smoke_seconds_min 15
+                jugg_smoke_max 3
                 jugg_intermission 10
                 jugg_min_players 2
                 jugg_rounds_per_map 0
@@ -206,7 +210,7 @@ playlists
                 classic_mp 1
                 max_players 14
                 max_teams 2
-                scorelimit 50
+                scorelimit 100
                 timelimit 10
                 run_epilogue 1
                 riff_allow_npcs 0
@@ -221,6 +225,124 @@ playlists
                 mp_wargames 1
                 mp_relic02 1
                 mp_glitch 1
+            }
+        }
+        gtfo
+        {
+            inherit defaults
+            vars
+            {
+                name #PL_gtfo
+                lobbytitle #PL_gtfo_lobby
+                description #PL_gtfo_desc
+                hint #PL_gtfo_hint
+                abbreviation #PL_gtfo_abbr
+                image ffa
+                color "70 235 190 255"
+                classic_mp 1
+                max_players 14
+                max_teams 16
+                scorelimit 3
+                timelimit 9999
+                run_epilogue 1
+                earn_meter_pilot_multiplier 0
+                earn_meter_titan_multiplier 0
+                boosts_enabled 0
+                riff_allow_npcs 0
+                respawnprotection 0
+                gtfo_elimination_seconds 30
+                gtfo_laser_warning 3
+                gtfo_intermission 8
+                gtfo_knockback 850
+                gtfo_knockup 220
+            }
+            maps
+            {
+                mp_angel_city 1
+            }
+        }
+        echo
+        {
+            inherit defaults
+            vars
+            {
+                name #PL_echo
+                lobbytitle #PL_echo_lobby
+                description #PL_echo_desc
+                hint #PL_echo_hint
+                abbreviation #PL_echo_abbr
+                image tdm
+                classic_mp 1
+                max_players 14
+                max_teams 2
+                scorelimit 5
+                timelimit 9999
+                run_epilogue 1
+                earn_meter_pilot_multiplier 0
+                earn_meter_titan_multiplier 0
+                boosts_enabled 0
+                riff_allow_npcs 0
+                respawnprotection 0
+                echo_hide_seconds 20
+                echo_hunt_seconds 300
+                echo_intermission 8
+                echo_two_hunters_at 8
+                echo_scale_from_hiders 6
+                echo_screech_cooldown_per_hider 0.5
+                echo_screech_cooldown_min 8
+                echo_screech_cooldown 12
+                echo_screech_radius 960
+                echo_screech_seconds 3
+                echo_melee_damage 65
+                echo_odor_range 220
+                echo_heartbeat_range 1400
+                echo_heartbeat_panic_range 160
+                echo_heartbeat_panic_bpm 210
+                echo_teammate_full_range 240
+                echo_teammate_hide_range 480
+                echo_hider_vocal_enabled 1
+                echo_hider_vocal_interval 40
+                echo_hider_vocal_jitter 5
+                echo_prowler_vocal_min 9
+                echo_prowler_vocal_max 16
+                echo_noise_debug 0
+                echo_noise_climb 0.5
+                echo_outline_range 320
+                echo_shove_range 100
+                echo_shove_speed 520
+                echo_shove_seconds 0.85
+                echo_noise_shove 0.85
+                echo_noise_range 3072
+                echo_noise_tick 0.05
+                echo_step_interval 0.35
+                echo_walk_speed 35
+                echo_sprint_speed 220
+                echo_jump_speed 80
+                echo_land_speed 250
+                echo_land_hard_speed 800
+                echo_noise_radius_min 80
+                echo_noise_radius_max 240
+                echo_noise_seconds_min 0.25
+                echo_noise_seconds_max 0.8
+                echo_own_noise_scale 0.45
+                echo_pulse_hold 7
+                echo_guidance_radius 160
+                echo_guidance_brightness 0.5
+                echo_noise_pulse_hold 5.0
+                echo_noise_seen_linger 5.0
+                echo_noise_run 0.5
+                echo_noise_walk 0.25
+                echo_noise_jump 0.6
+                echo_noise_land 0.3
+                echo_noise_switch 0.08
+                echo_noise_reload 0.12
+                echo_noise_melee 0.2
+            }
+            maps
+            {
+                mp_lf_stacks 1
+                mp_lf_uma 1
+                mp_lf_meadow 1
             }
         }
         partylobby
@@ -369,6 +491,56 @@ playlists
                         mp_wargames 1
                         mp_relic02 1
                         mp_glitch 1
+                    }
+                }
+            }
+        }
+        gtfo
+        {
+            inherit defaults
+            vars
+            {
+                name #PL_gtfo
+                lobbytitle #PL_gtfo_lobby
+                description #PL_gtfo_desc
+                hint #PL_gtfo_hint
+                abbreviation #PL_gtfo_abbr
+                image ffa
+                visible 1
+            }
+            gamemodes
+            {
+                gtfo
+                {
+                    maps
+                    {
+                        mp_angel_city 1
+                    }
+                }
+            }
+        }
+        echo
+        {
+            inherit defaults
+            vars
+            {
+                name #PL_echo
+                lobbytitle #PL_echo_lobby
+                description #PL_echo_desc
+                hint #PL_echo_hint
+                abbreviation #PL_echo_abbr
+                image tdm
+                visible 1
+            }
+            gamemodes
+            {
+                echo
+                {
+                    maps
+                    {
+                mp_lf_stacks 1
+                mp_lf_uma 1
+                mp_lf_meadow 1
                     }
                 }
             }

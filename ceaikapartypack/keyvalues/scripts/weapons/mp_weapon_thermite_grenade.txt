@@ -1,3 +1,4 @@
+// Retained as an empty patch so upgrades replace the old throw callbacks.
 WeaponData
 {
 }

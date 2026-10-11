@@ -1,10 +1,15 @@
 global function Cl_BodySwap_Init
 
-const vector BS_ORANGE = <0.9823,0.0704,0.0003>
-const vector BS_SHADOW = <0.18,0.004,0.0>
-const float BS_DIGIT_HEIGHT = 150.0
-const float BS_DIGIT_Y = -285.0
-const float BS_DIGIT_ALPHA = 0.8
+// Body Swap countdown: 3, 2, 1 near the top of the screen, under the score bar
+// and well clear of the crosshair, slightly see-through, in the intro's
+// font (rui/ceaika/swap_*, baked by artifacts/ceaika-ui-pak) and colours.
+// Each digit punches in with a small overshoot, holds, then swells and fades
+// as the next one lands. The swap time comes from the server (bsNextSwap).
+const vector BS_ORANGE = <0.9823,0.0704,0.0003> // #FD4B01, as the intro (linear colour)
+const vector BS_SHADOW = <0.18,0.004,0.0>       // the intro's deep red-brown shadow
+const float BS_DIGIT_HEIGHT = 150.0             // on a 1080p screen
+const float BS_DIGIT_Y = -285.0                 // from the screen centre: a quarter of the way down
+const float BS_DIGIT_ALPHA = 0.8                // see-through enough not to hide targets
 
 struct
 {
@@ -35,6 +40,7 @@ asset function BS_DigitImage( int digit )
     return $"rui/ceaika/swap_1"
 }
 
+// Width over height of each baked digit (intro_sizes.json).
 float function BS_DigitAspect( int digit )
 {
     if ( digit == 3 ) return 189.0 / 300.0
@@ -84,25 +90,25 @@ void function BS_HudDraw()
         RuiSetImage( bsHud.shadow, "basicImage", BS_DigitImage( digit ) )
         EmitSoundOnEntity( GetLocalClientPlayer(), "UI_InGame_HalftimeText_Enter" )
     }
-
+    // u: 0 when this digit lands, 1 as the next one takes over.
     float u = 1.0 - ( left - float( digit - 1 ) )
     float scale = 1.0
     float alpha = 1.0
     if ( u < 0.22 )
     {
-
+        // Punch in from big, with a slight overshoot.
         float t = u / 0.22
         scale = 1.0 + 0.6 * ( 1.0 - BS_EaseOutBack( t ) )
         alpha = clamp( t * 3.0, 0.0, 1.0 )
     }
     else if ( u > 0.8 )
     {
-
+        // Swell and fade out.
         float t = ( u - 0.8 ) / 0.2
         scale = 1.0 + 0.25 * t
         alpha = 1.0 - t
     }
-
+    // A short shake as it lands.
     float shake = u < 0.3 ? ( 0.3 - u ) / 0.3 : 0.0
 
     float width = GetScreenSize()[0]

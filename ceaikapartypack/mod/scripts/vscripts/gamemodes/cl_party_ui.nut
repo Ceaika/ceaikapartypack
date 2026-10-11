@@ -6,9 +6,15 @@ global function PartyUI_Popup
 global function PartyUI_BannerShowing
 global function PartyUI_NoteBanner
 
+// Shared on-screen messaging for Hot Potato and Juggernaut: a banner for big
+// moments (upper middle), a short event feed (right side) and a popup for
+// things that happen to you (bottom middle). The server sends text with
+// ServerToClientStringCommand; client scripts can call these directly.
 const int PARTY_FEED_MAX = 5
 const float PARTY_FEED_LIFE = 7.0
 
+// Popup kinds pick the sound: info, error, success, alert (alert is silent:
+// the server already plays a sound for those).
 global const int PARTY_POPUP_INFO = 0
 global const int PARTY_POPUP_ERROR = 1
 global const int PARTY_POPUP_GOOD = 2
@@ -39,7 +45,7 @@ struct PartyPopupData
 struct
 {
     array<PartyPopupData> popups
-    array<PartyPopupData> popupNow
+    array<PartyPopupData> popupNow // zero or one popup on screen
     float popupAt = -99.0
     var popupTopo
     var popupBack
@@ -48,7 +54,7 @@ struct
     var popupTitle
     var popupSub
     array<PartyBannerData> queue
-    array<PartyBannerData> current
+    array<PartyBannerData> current // zero or one banner on screen
     float shownAt = -99.0
     array<PartyFeedData> feed
     bool started = false
@@ -75,6 +81,7 @@ void function PartyUI_Init()
     thread PartyUI_Think()
 }
 
+// Server encoding: spaces become \b, an empty field is "~".
 string function PartyUI_Decode( string text )
 {
     if ( text == "~" ) return ""
@@ -109,7 +116,7 @@ void function PartyUI_Popup( string title, string subtitle, vector color, int ki
     data.color = color
     data.kind = kind
     data.duration = clamp( duration, 1.2, 6.0 )
-
+    // The same message again while it is still up only restarts its timer.
     if ( party.popupNow.len() > 0 && party.popupNow[0].title == data.title && party.popupNow[0].subtitle == data.subtitle && party.popups.len() == 0 )
     {
         party.popupAt = Time() - 0.2
@@ -130,13 +137,14 @@ void function PartyUI_Banner( string title, string subtitle, vector color, float
     party.queue.append( data )
 }
 
+// "HEAD | body" shows HEAD in the accent colour and the rest below it.
 void function PartyUI_Feed( string text, vector color )
 {
     PartyFeedData item
     int cut = text.find( " | " ) == null ? -1 : expect int( text.find( " | " ) )
     item.head = cut < 0 ? text : text.slice( 0, cut )
     item.body = cut < 0 ? "" : text.slice( cut+3 )
-
+    // A long message with no heading: its first line becomes the heading, the rest wraps below.
     if ( cut < 0 && text.len() > 44 )
     {
         array<string> lines = split( PartyUI_Wrap( text, 44, 99 ), "\n" )
@@ -152,6 +160,7 @@ void function PartyUI_Feed( string text, vector color )
     if ( party.feed.len() > PARTY_FEED_MAX ) party.feed.remove( party.feed.len()-1 )
 }
 
+// Break text into lines of at most `width` characters at spaces.
 string function PartyUI_Wrap( string text, int width, int maxLines )
 {
     array<string> lines
@@ -186,7 +195,27 @@ var function PartyUI_Text( asset kind, float size, int sort )
     RuiSetFloat3( rui, "msgColor", <1,1,1> )
     return rui
 }
-var function PartyUI_Topo() { return RuiTopology_CreatePlane( <0,0,0>, <1,0,0>, <0,1,0>, false ) }
+// The planes are set aside up front (PartyUI_Reserve), so running out of the
+// client's 64 halfway through cannot leave the UI half built.
+array<var> partyTopoPool
+var function PartyUI_Topo() { return partyTopoPool.pop() }
+
+bool function PartyUI_Reserve( int count )
+{
+    for ( int i = 0; i < count; i++ )
+    {
+        var topo = null
+        try { topo = RuiTopology_CreatePlane( <0,0,0>, <1,0,0>, <0,1,0>, false ) }
+        catch ( ex )
+        {
+            foreach ( var held in partyTopoPool ) RuiTopology_Destroy( held )
+            partyTopoPool.clear()
+            return false
+        }
+        partyTopoPool.append( topo )
+    }
+    return true
+}
 var function PartyUI_Rect( var topo, vector color, int sort )
 {
     var rui = RuiCreate( $"ui/basic_image.rpak", topo, RUI_DRAW_HUD, sort )
@@ -232,8 +261,16 @@ void function PartyUI_Create()
 void function PartyUI_Think()
 {
     while ( !IsValid( GetLocalClientPlayer() ) ) WaitFrame()
-
+    // A client can hold only 64 RUI topologies. Create ours on first use so
+    // modes that never send a banner (Prop Hunt) do not spend any.
     while ( party.queue.len() == 0 && party.feed.len() == 0 && party.popups.len() == 0 ) WaitFrame()
+    // No room yet (the lobby's arrival card holds most of them for a few
+    // seconds): keep the messages queued and try again shortly.
+    while ( !PartyUI_Reserve( 4 + 2*PARTY_FEED_MAX ) )
+    {
+        printt( "[PartyUI] no room for the UI yet, retrying" )
+        wait 1.0
+    }
     PartyUI_Create()
     OnThreadEnd( function()
     {
@@ -255,7 +292,7 @@ void function PartyUI_Think()
 
 void function PartyUI_DrawBanner()
 {
-
+    // Advance the queue: a waiting banner replaces the current one after 2 s.
     float age = Time() - party.shownAt
     bool expired = party.current.len() == 0 || age > party.current[0].duration
     if ( party.queue.len() > 0 && (expired || age > 2.0) )
@@ -277,12 +314,13 @@ void function PartyUI_DrawBanner()
         float height = GetScreenSize()[1]
         float s = height / 1080.0
         string subtitle = PartyUI_Wrap( party.current[0].subtitle, 70, 2 )
-
+        // Text draws slightly above its position, so offsets are measured from the
+        // visible glyphs: 20 px margin above the title and below the last line.
         int lines = PartyUI_Lines( subtitle )
         float h = (lines == 0 ? 64.0 : 92.0 + 24.0*(lines-1))*s
         float w = 820.0*s
         float x = width*0.5 - w*0.5
-
+        // Below the Titan cockpit's health bar.
         float y = height*0.27
         PartyUI_Place( party.bandTopo, x, y, w, h )
         PartyUI_Place( party.lineTopo, x, y+h-3.0*s, w, 3.0*s )
@@ -342,6 +380,8 @@ void function PartyUI_DrawFeed()
     }
 }
 
+// Bottom middle, above the weapon and ability HUD. A newer popup replaces the
+// current one after 0.7 s so quick events still read in order.
 void function PartyUI_DrawPopup()
 {
     float age = Time() - party.popupAt
@@ -367,7 +407,7 @@ void function PartyUI_DrawPopup()
         float width = GetScreenSize()[0]
         float height = GetScreenSize()[1]
         float s = height / 1080.0
-
+        // Slide up a few pixels as it appears.
         float rise = (1.0 - clamp( age/0.12, 0.0, 1.0 )) * 10.0 * s
         float h = (data.subtitle == "" ? 50.0 : 74.0) * s
         float w = 600.0 * s
@@ -390,12 +430,14 @@ void function PartyUI_DrawPopup()
     if ( alpha <= 0.0 ) { RuiSetFloat( party.popupBack, "basicImageAlpha", 0.0 ); RuiSetFloat( party.popupLine, "basicImageAlpha", 0.0 ); }
 }
 
+// A mode with its own title display (Prop Hunt) reports it here.
 float partyExternalBannerUntil = 0.0
 void function PartyUI_NoteBanner( float duration )
 {
     partyExternalBannerUntil = Time() + duration
 }
 
+// True while a banner is on screen (the match intro waits for the mode's title).
 bool function PartyUI_BannerShowing()
 {
     if ( Time() < partyExternalBannerUntil ) return true

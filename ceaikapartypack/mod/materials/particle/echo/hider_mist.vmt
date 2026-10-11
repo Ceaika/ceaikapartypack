@@ -1,0 +1,12 @@
+"SpriteCard"
+{
+ "$basetexture" "particle/smoke/fog_thin_perlin"
+ "$vertexcolor" "1"
+ "$vertexalpha" "1"
+ "$translucent" "1"
+ "$depthblend" "1"
+ "$depthblendscale" "40"
+ "$startfadesize" "1.2"
+ "$endfadesize" "2.0"
+ "$vertexFogAmount" "0"
+}

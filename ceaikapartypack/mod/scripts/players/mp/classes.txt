@@ -1,3 +1,6 @@
+// Stay within the standard Northstar limit of 60 classes. Two unused campaign
+// variants are omitted from this MP list to allow three Prop Hunt hulls and
+// both Hush roles. The separate SP class list is unchanged.
 "class list"
 {
  import "pilot_light_male.set"
@@ -21,8 +24,6 @@
  import "pilot_solo.set"
  import "pilot_solo_timeshift.set"
  import "pilot_solo_training.set"
- import "pilot_solo_gravtest.set"
- import "pilot_solo_rising_world_run.set"
  import "civilian_solo.set"
  import "civilian_solo_pilot.set"
  import "civilian_solo_skyway.set"
@@ -60,4 +61,6 @@
  import "ph_prop_0.set"
  import "ph_prop_1.set"
  import "ph_prop_2.set"
+ import "echo_hider.set"
+ import "echo_prowler.set"
 }

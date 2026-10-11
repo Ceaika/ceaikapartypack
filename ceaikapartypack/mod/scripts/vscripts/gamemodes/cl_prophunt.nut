@@ -2,7 +2,7 @@ untyped
 global function PH_ClientInit
 global function PH_Feedback
 const int PH_SLOTS = 5
-
+// Shared between PH_Feedback (server events) and the HUD thread.
 struct
 {
     string toast = ""
@@ -40,6 +40,8 @@ void function PH_PressDecoy( entity player ) { PH_Send( "ph_decoy" ) }
 void function PH_PressLock( entity player ) { PH_Send( "ph_lock" ) }
 void function PH_PressFreeze( entity player ) { PH_Send( "ph_freeze" ) }
 
+// The server confirms each prop action (or refuses it). Show a short line under
+// the crosshair, flash the matching action slot and play a sound.
 void function PH_Feedback( int kind, int value )
 {
     entity p = GetLocalClientPlayer()
@@ -105,7 +107,7 @@ var function PH_HudText( asset kind, float size, vector color, int sort )
     RuiSetFloat3( rui, "msgColor", color )
     return rui
 }
-
+// A flat HUD rectangle. Several images may share one topology (same rectangle).
 var function PH_HudRect( var topo, vector color, float alpha, int sort )
 {
     var rui = RuiCreate( $"ui/basic_image.rpak", topo, RUI_DRAW_HUD, sort )
@@ -124,6 +126,8 @@ void function PH_TextAt( var rui, string text, float x, float y, float alpha, fl
     RuiSetFloat( rui, "msgAlpha", alpha )
 }
 
+// HUD elements live here so each drawing step can be its own small function
+// (Squirrel limits how many locals one function may have).
 struct
 {
     var waitTopo
@@ -167,21 +171,22 @@ void function PH_HudCreate()
 {
     asset LEFT = $"ui/cockpit_console_text_top_left.rpak"
     asset CENTER = $"ui/cockpit_console_text_center.rpak"
-
+    // Hunter wait screen during the hide phase.
     phUi.waitTopo = PH_NewTopo()
-
+    // The near-black the game shows a video's black as (PH_WaitVideo), so the
+    // waiting video's edge does not show.
     phUi.waitBack = PH_HudRect( phUi.waitTopo, <0.0024,0.0024,0.0024>, 0.0, 105 )
     phUi.waitText = PH_HudText( CENTER, 38.0, <1,1,1>, 121 )
     phUi.waitText2 = PH_HudText( CENTER, 38.0, <1,1,1>, 121 )
     phUi.waitText3 = PH_HudText( CENTER, 38.0, <1,1,1>, 121 )
-
+    // Round status panel (left, under the minimap).
     phUi.statusTopo = PH_NewTopo()
     phUi.statusBack = PH_HudRect( phUi.statusTopo, <0.015,0.025,0.035>, 0.0, 109 )
     phUi.statusAccentTopo = PH_NewTopo()
     phUi.statusAccent = PH_HudRect( phUi.statusAccentTopo, PH_Teal(), 0.0, 110 )
     phUi.statusTitle = PH_HudText( LEFT, 30.0, <1,1,1>, 111 )
     phUi.statusDetail = PH_HudText( LEFT, 19.0, PH_Muted(), 111 )
-
+    // Prop panel: disguise name, health bar, action slots.
     phUi.propTopo = PH_NewTopo()
     phUi.propBack = PH_HudRect( phUi.propTopo, <0.01,0.015,0.02>, 0.0, 108 )
     phUi.nameText = PH_HudText( LEFT, 26.0, <1,1,1>, 111 )
@@ -259,7 +264,9 @@ void function PH_HudWait( entity p )
     RuiSetString( phUi.waitText, "msgText", "YOU ARE A HUNTER" )
     RuiSetString( phUi.waitText2, "msgText", "WAITING FOR PROPS TO HIDE" )
     RuiSetString( phUi.waitText3, "msgText", format( "HUNT STARTS IN %d SECONDS", remaining ) )
-
+    // The first two lines where the waiting video has them baked in (the same
+    // fractions of its height as artifacts/ph-wait-video/make.py), the countdown
+    // just under the video.
     float video = PH_WaitVideoHeight()/height
     RuiSetFloat2( phUi.waitText, "msgPos", <0,0.135*video-0.5,0> )
     RuiSetFloat2( phUi.waitText2, "msgPos", <0,0.191*video-0.5,0> )
@@ -267,6 +274,13 @@ void function PH_HudWait( entity p )
     PH_WaitVideo( p, waiting )
 }
 
+// Something to watch while the props hide: the waiting screen as a video
+// (mod/media/ceaika_ph_wait.bik, built by artifacts/ph-wait-video/make.py): the
+// first two lines, and a Subway Surfers clip under them that fades in from
+// black over 15 s. The engine's video panel sits at the top-left corner, over
+// the HUD, and fits the video into it keeping its shape. The video is 2:1 and
+// the panel full width and half as tall, so it fills the panel exactly and
+// leaves the bottom of the screen to the countdown (waitText3).
 void function PH_WaitVideo( entity p, bool waiting )
 {
     if ( waiting == phUi.waitVideo ) return
@@ -275,6 +289,8 @@ void function PH_WaitVideo( entity p, bool waiting )
     p.ClientCommand( format( "playvideo_nointerrupt ceaika_ph_wait %d %d", int( GetScreenSize()[0] ), int( PH_WaitVideoHeight() ) ) )
 }
 
+// The waiting video's height in pixels (wider than 2:1 screens get a shorter
+// panel, the video centred in it).
 float function PH_WaitVideoHeight()
 {
     return min( GetScreenSize()[0]*0.5, GetScreenSize()[1]*0.9 )
@@ -326,6 +342,7 @@ void function PH_HudStatus( entity p )
     PH_TextAt( phUi.statusDetail, detail, x+16.0*s, y+42.0*s, 1.0, width, height )
 }
 
+// Disguise name and health above a row of action slots, bottom centre.
 void function PH_HudProp( entity p )
 {
     float width = GetScreenSize()[0]
@@ -352,7 +369,7 @@ void function PH_HudProp( entity p )
         RuiSetFloat( phUi.nameText, "msgAlpha", 0.0 )
         RuiSetFloat( phUi.hpText, "msgAlpha", 0.0 )
     }
-
+    // One dark card behind the whole panel keeps the text readable on bright ground.
     PH_Place( phUi.propTopo, x0-12.0*s, y0-78.0*s, total+24.0*s, 160.0*s )
     RuiSetFloat( phUi.propBack, "basicImageAlpha", prop ? 0.55 : 0.0 )
     RuiSetFloat( phUi.hpBack, "basicImageAlpha", prop ? 0.8 : 0.0 )
@@ -376,7 +393,7 @@ void function PH_HudSlot( entity p, int i, bool prop, float x, float y )
     bool active = false
     bool usable = true
     float tauntLeft = max( 0.0, p.GetPlayerNetTime( "phTauntReady" ) - Time() )
-
+    // Solo debug (hide phase with no time limit) and !propdebug allow taunts early.
     bool tauntOpen = phase == 2 || (phase == 1 && (GetGlobalNetBool( "phDebug" ) || GetGlobalNetTime( "phEnd" ) <= 0.0))
     if ( i == 0 ) { int left = PH_RerollsLeft( p ); value = debug ? "unlimited" : string( left ) + " left"; usable = debug || left > 0; }
     else if ( i == 1 ) { int left = PH_DecoysLeft( p ); value = debug ? "unlimited" : string( left ) + " left"; usable = debug || left > 0; }
@@ -403,7 +420,7 @@ void function PH_HudSlot( entity p, int i, bool prop, float x, float y )
     PH_TextAt( phUi.slotValues[i], value, x+12.0*s, y+47.0*s, alpha, width, height )
     if ( i == 4 )
     {
-
+        // Solo debug and !propdebug use a 1 s cooldown.
         float length = phase == 1 || GetGlobalNetBool( "phDebug" ) ? 1.0 : float( maxint( 3, GetCurrentPlaylistVarInt( "ph_taunt_cooldown", 10 ) ) )
         float done = tauntOpen ? 1.0 - clamp( tauntLeft/length, 0.0, 1.0 ) : 0.0
         PH_Place( phUi.tauntTopo, x, y+h-4.0*s, max( 1.0, w*done ), 4.0*s )
@@ -411,6 +428,7 @@ void function PH_HudSlot( entity p, int i, bool prop, float x, float y )
     }
 }
 
+// Feedback line under the crosshair: holds, then fades.
 void function PH_HudToast()
 {
     float age = Time() - phHud.toastAt
@@ -419,6 +437,8 @@ void function PH_HudToast()
     RuiSetFloat( phUi.toastText, "msgAlpha", age < 1.2 ? 1.0 : clamp( 1.0-(age-1.2)/0.4, 0.0, 1.0 ) )
 }
 
+// Render all disguises from the player's predicted/interpolated position each
+// frame. These client-only models have no collision, parent or pilot animation.
 void function PH_Visuals()
 {
     table<entity,entity> visuals
@@ -475,6 +495,8 @@ void function PH_Input(int button)
     }
 }
 
+// Keep persistent low-health audio quiet for hunters after environmental damage.
+// Leave impact audio and the health HUD intact.
 void function PH_HunterHealthAudio()
 {
     array<string> loops = ["pilot_wounded_loop_1p", "pilot_critical_breath_loop_1p", "pilot_critical_drone_loop_1p"]
@@ -496,6 +518,7 @@ void function PH_HunterHealthAudio()
     }
 }
 
+// Plants, bottles and other separate map pieces that belong to a disguise.
 array<entity> function PH_CreatePieces( asset owner )
 {
     array<entity> list

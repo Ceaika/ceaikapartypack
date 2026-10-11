@@ -7,7 +7,9 @@ modes:
 - **hot potato** - someone's holding a ticking potato, melee someone to pass it before it blows
 - **prop hunt** - props hide as objects, hunters gotta find them
 - **body swap** - every few seconds u swap bodies with a random enemy
-- plus the stock ones in rotation (ffa, the hidden, one in the chamber, gun game, infection)
+- **gtfo** - stay on the hill and knock everyone else off, lowest hill time gets eliminated
+- **hush** - blind prowlers hunt pilots by sound. still being worked on
+- plus the stock ones in rotation (ffa, one in the chamber, infection)
 
 this repo is the **client side only**. the server logic (round flow, scoring, spawning, all that) isn't in here, it runs on my server. u need this to join and see everything properly.
 

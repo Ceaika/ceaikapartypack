@@ -11,6 +11,7 @@ struct
     entity cockpit = null
 } file
 
+// Status panel (left, under the minimap) and the carrier's crosshair fuse timer.
 struct
 {
     var fuse = null
@@ -46,7 +47,7 @@ void function HP_Feedback( int event, int reward )
     }
     else if ( event == 1 )
     {
-
+        // Everyone gets the "X passed to Y" feed line from the server.
         EmitSoundOnEntity( player, "UI_TitanBattery_Pilot_Give_TitanBattery" )
     }
     else if ( event == 2 ) PartyUI_Feed( "SUPPLY DROP INCOMING | Follow the landing marker. One hack per pilot this round.", blue )
@@ -85,7 +86,7 @@ void function HP_Place( var topo, float x, float y, float w, float h )
 
 void function HP_HudCreate()
 {
-
+    // The same crosshair countdown the game uses for Amped Weapons.
     hpUi.fuse = CreateCockpitRui( $"ui/lockon_hud.rpak" )
     RuiSetBool( hpUi.fuse, "isVisible", false )
     foreach ( string side in ["northLock","southLock","westLock","eastLock"] ) RuiSetBool( hpUi.fuse, side, false )
@@ -109,9 +110,10 @@ void function HP_HudDestroy()
         if ( topo != null ) RuiTopology_Destroy( topo )
 }
 
+// The carrier's crosshair box: just the time left, e.g. 7.42.
 void function HP_FuseThink()
 {
-
+    // Global net vars exist only once the local player does.
     while ( !IsValid( GetLocalClientPlayer() ) ) WaitFrame()
     while ( true )
     {
@@ -134,11 +136,11 @@ void function HP_HudUpdate( entity player, entity carrier )
     bool live = IsValid( carrier ) && fuseEnd > Time()
     bool mine = live && carrier == player && IsAlive( player )
     float left = max( 0.0, fuseEnd - Time() )
-
+    // Crosshair countdown for the carrier only.
     RuiSetBool( hpUi.fuse, "isVisible", mine )
     if ( mine )
     {
-
+        // Text is refreshed every frame by HP_FuseThink.
         int second = int( ceil( left ) )
         RuiSetGameTime( hpUi.fuse, "lockEndTime", fuseEnd )
         if ( second <= 5 && second != hpUi.lastBeep ) { hpUi.lastBeep = second; EmitSoundOnEntity( player, "HUD_40mm_TrackerBeep_Locked" ); }
@@ -184,7 +186,7 @@ void function HP_HudUpdate( entity player, entity carrier )
     RuiSetString( hpUi.detail, "msgText", detail )
     RuiSetFloat2( hpUi.detail, "msgPos", <(x+16.0*s)/width,(y+44.0*s)/height,0> )
     RuiSetFloat( hpUi.detail, "msgAlpha", 1.0 )
-
+    // Fuse bar: the fuse never resets on a pass, so everyone sees the same clock.
     float length = float( maxint( 5, GetCurrentPlaylistVarInt( "hp_fuse_seconds", 30 ) ) )
     float bx = x + 16.0*s
     float by = y + h - 16.0*s
@@ -238,7 +240,7 @@ void function HP_Presentation()
                     file.markedFX = StartParticleEffectOnEntity( cockpit, GetParticleSystemIndex( $"P_MFD" ), FX_PATTACH_ABSORIGIN_FOLLOW, -1 )
                     file.cockpit = cockpit
                 }
-
+                // No red "unmarked" burst after a pass: the banner and feed cover it.
             }
             wasMarked = marked
         }
@@ -250,7 +252,8 @@ void function HP_Presentation()
             {
                 file.carrierMarker = CreateCockpitRui( $"ui/overhead_icon_evac.rpak", 200 )
                 RuiSetImage( file.carrierMarker, "icon", $"rui/hud/gametype_icons/mfd/mfd_enemy" )
-
+                // MFD's KILL caption is baked into its RUI. This native marker
+                // keeps the MFD icon with an explicit, mode-local caption.
                 RuiSetString( file.carrierMarker, "statusText", "Potatoman" )
                 RuiSetGameTime( file.carrierMarker, "finishTime", RUI_BADGAMETIME )
                 RuiSetBool( file.carrierMarker, "isVisible", true )
@@ -260,7 +263,7 @@ void function HP_Presentation()
         }
         int state = GetGlobalNetInt( "hpDropState" )
         entity drop = GetGlobalNetEnt( "hpDrop" )
-
+        // A claimed terminal no longer competes for that player's attention.
         if ( player.GetPlayerNetBool( "hpTacticalClaimed" ) ) state = 0
         if ( state != lastDropState || drop != lastDrop )
         {

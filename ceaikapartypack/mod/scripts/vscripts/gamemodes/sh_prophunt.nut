@@ -9,7 +9,7 @@ global function PH_ModelIndex
 global function PH_SharedInit
 global function PH_CanExecute
 global const string GAMEMODE_PROPHUNT = "prophunt"
-
+// PH_Feedback kinds: what just happened to the local prop, for HUD pops and sounds.
 global const int PH_FB_DENY = 0
 global const int PH_FB_REROLL = 1
 global const int PH_FB_DECOY = 2
@@ -71,6 +71,8 @@ void function PH_Network()
     RegisterNetworkedVariable( "phTauntReady", SNDC_PLAYER_EXCLUSIVE, SNVT_TIME, 0.0 )
 }
 
+// Inventory uses only charges (0..42). Model identity comes from the replicated
+// prop entity, so catalog size no longer competes for the signed ten-bit slot.
 int function PH_RerollsLeft( entity p ) { return p.GetPlayerNetInt("phInventory") % 4; }
 int function PH_DecoysLeft( entity p ) { return p.GetPlayerNetInt("phInventory") / 4; }
 int function PH_ModelIndex( entity p )
@@ -82,12 +84,15 @@ int function PH_ModelIndex( entity p )
     return 0
 }
 
+// Centred XY footprint, model bottom at the player's feet. This avoids using
+// arbitrary model pivots as the floor/contact point.
 vector function PH_ModelOrigin( entity body, vector feet, vector angles )
 {
     vector low = body.GetBoundingMins()
     vector high = body.GetBoundingMaxs()
     vector offset = < -(low.x+high.x)*0.5, -(low.y+high.y)*0.5, -low.z>
-
+    // These models are authored slightly sunk into Township's floor. Their
+    // padded collision bounds otherwise leave their visible bases hovering.
     asset model=body.GetModelName()
     if(model==$"models/containers/news_stand.mdl" || model==$"models/containers/news_stand_with_graffiti.mdl")
         offset.z-=1.25

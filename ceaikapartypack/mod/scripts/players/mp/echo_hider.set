@@ -1,0 +1,7 @@
+#base "pilot_grapple_male.set"
+"echo_hider"
+{
+ "global" { "wallrun" "0" "doubleJump" "1" "jumpheight" "60" "gravityscale" "0.8" }
+ "stand" { "speed" "173.5" "sprintspeed" "260" "viewheight" "0 0 60" "firstpersonproxyoffset" "0 0 -60" }
+ "crouch" { "speed" "80" "footstepMinSpeed" "99999" "footstepWalkSoundRadius" "0" "footstepRunSoundRadius" "0" }
+}

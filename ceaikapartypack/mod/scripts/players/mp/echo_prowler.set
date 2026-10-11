@@ -1,0 +1,7 @@
+#base "pilot_grapple_male.set"
+"echo_prowler"
+{
+ "global" { "wallrun" "0" "doubleJump" "0" "jumpheight" "135" "gravityscale" "0.8" }
+ "stand" { "speed" "165" "sprintspeed" "390" "viewheight" "0 0 40" "firstpersonproxyoffset" "0 0 -40" }
+ "crouch" { "speed" "80" }
+}

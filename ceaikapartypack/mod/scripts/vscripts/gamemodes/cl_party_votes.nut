@@ -2,21 +2,32 @@ global function PartyVoteBoards_Init
 global function PartyHolo_Digit
 global function PartyVoteBoards_Release
 
-const int VB_MODES = 9
-const float VB_OPEN = 210.0
-const float VB_CLOSE = 270.0
-const float VB_NAME_Z = 96.0
-const float VB_BEAM_Z = 44.0
-const float VB_BOTTOM = 70.0
+// Party lobby vote screens as holograms. Each mode's name floats low over its
+// screen at all times, turned to face you (orange; green once it has your vote).
+// Walk up to a screen and its projector fires: a beam of light comes out of the
+// screen, corner brackets snap in, and a glass card glitches into place with the
+// mode's name, a vote counter that counts up in the intro font, and one line
+// about the mode typed out. A scan line keeps sweeping the card; voting flashes
+// it green. The pieces are images from the pack's atlas (artifacts/ceaika-ui-pak,
+// intro.holo_images). One card serves all nine screens, which keeps within the
+// client's 64 world/HUD planes.
+
+const int VB_MODES = 11
+const float VB_OPEN = 210.0          // the card opens this close to a screen...
+const float VB_CLOSE = 270.0         // ...and folds away past this
+const float VB_NAME_Z = 96.0         // the floating name, above the screen's base
+const float VB_BEAM_Z = 44.0         // where the projector beam starts (the screen)
+const float VB_BOTTOM = 70.0         // the card, above the screen's base
 const float VB_W = 136.0
 const float VB_H = 56.0
 const float VB_PAD = 8.0
 const float VB_NAME_H = 13.0
 const float VB_DIGIT_H = 24.0
-const float VB_DIGIT_ASPECT = 0.7297
-const float VB_TEXT_H = 76.5
+const float VB_DIGIT_ASPECT = 0.7297 // the digit cells' 81 x 111
+const float VB_TEXT_H = 76.5         // the text plane: VB_W at 16:9, as the text canvas
 
-const vector VB_ORANGE = <0.992,0.294,0.004>
+// Panels in the world take sRGB colours.
+const vector VB_ORANGE = <0.992,0.294,0.004>   // the loading screen's #FD4B01
 const vector VB_GREEN = <0.3,0.92,0.46>
 const vector VB_GLASS = <0.01,0.012,0.02>
 const vector VB_SOFT = <0.93,0.95,0.97>
@@ -26,20 +37,20 @@ const int VQ_BEAM = 0
 const int VQ_PANEL = 1
 const int VQ_BRACKETS = 2
 const int VQ_SWEEP = 3
-const int VQ_LINE = 4
-const int VQ_TEXT = 5
+const int VQ_LINE = 4                // the underline under the name
+const int VQ_TEXT = 5                // the text plane (its texts in board.texts)
 const int VQ_TENS = 6
 const int VQ_ONES = 7
-const int VQ_NAME = 8
+const int VQ_NAME = 8                // VQ_NAME + i: mode i's name
 
 struct
 {
     array<var> topos
     array<var> ruis
-    array<var> texts
+    array<var> texts                 // the line about the mode, the status, "VOTES"
     array<entity> panels
     array<float> aspect
-    int at = -1
+    int at = -1                      // the screen the card is over
     bool open = false
     float openT = 0.0
     int lastVotes = -1
@@ -49,6 +60,8 @@ struct
     bool released = false
 } board
 
+// A transition is starting (we are leaving the map): give back the planes for
+// its card (the client has 64 in all) and stay off.
 void function PartyVoteBoards_Release()
 {
     board.released = true
@@ -60,7 +73,8 @@ void function PartyVoteBoards_Init()
     thread VB_Run()
 }
 
-string function VB_Key( int i ) { return ["jugg","hotpotato","prophunt","bodyswap","ffa","hidden","chamber","gg","inf"][i]; }
+// Same order as the server's lobby.modes.
+string function VB_Key( int i ) { return ["jugg","hotpotato","prophunt","bodyswap","ffa","hidden","chamber","gg","inf","gtfo","echo"][i]; }
 
 string function VB_Description( int i )
 {
@@ -75,6 +89,8 @@ string function VB_Description( int i )
         case 6: return "One bullet, one kill.\nMiss and it's your fists."
         case 7: return "Every kill gives you\nthe next weapon."
         case 8: return "Die and you join the infected.\nThree rounds."
+        case 10: return "Blind Prowlers hunt by sound.\nHiders stay quiet to survive."
+        case 9: return "Hold the hill. Shove with swords.\nLowest time gets the laser."
     }
     return ""
 }
@@ -103,7 +119,7 @@ bool function VB_Create()
     foreach ( asset image in images )
     {
         var topo
-
+        // The client has 64 planes in all: try again later rather than fail.
         try { topo = RuiTopology_CreatePlane( <0,0,0>, <0,1,0>, <0,0,-1>, true ) }
         catch ( ex ) { VB_Destroy(); return false }
         var rui = RuiCreate( $"ui/basic_image.rpak", topo, RUI_DRAW_WORLD, 0 )
@@ -114,8 +130,9 @@ bool function VB_Create()
     }
     RuiSetFloat3( board.ruis[VQ_LINE], "basicImageColor", <1,1,1> )
     board.texts.append( VB_Text( board.topos[VQ_TEXT], 76.0, VB_SOFT, 0.06, 0.335 ) )
-    board.texts.append( VB_Text( board.topos[VQ_TEXT], 64.0, VB_DIM, 0.06, 0.56 ) )
+    board.texts.append( VB_Text( board.topos[VQ_TEXT], 64.0, VB_DIM, 0.06, 0.52 ) )
     board.texts.append( VB_Text( board.topos[VQ_TEXT], 54.0, VB_DIM, 0.868, 0.45 ) )
+    board.texts.append( VB_Text( board.topos[VQ_TEXT], 46.0, VB_ORANGE, 0.06, 0.605 ) )
     board.aspect.clear()
     for ( int i = 0; i < VB_MODES; i++ ) board.aspect.append( PartyName_Aspect( VB_Key( i ) ) )
     return true
@@ -147,6 +164,7 @@ void function VB_Run()
         bool any = false
         for ( int i = 0; i < VB_MODES; i++ )
         {
+            if ( !PartyLobby_ModeEnabled( i ) ) continue
             if ( !IsValid( board.panels[i] ) )
             {
                 array<entity> found = GetEntArrayByScriptName( "party_vote_" + i )
@@ -160,7 +178,7 @@ void function VB_Run()
             if ( Time() < retryAt ) continue
             if ( !VB_Create() ) { retryAt = Time() + 1.0; continue; }
         }
-
+        // The nearest screen opens the card; it stays there until you walk away.
         vector eye = player.EyePosition()
         int nearest = -1
         float best = 99999.0
@@ -181,12 +199,17 @@ void function VB_Run()
 
 float function VB_Flat( vector a, vector b ) { return Length( < a.x - b.x, a.y - b.y, 0 > ); }
 
+// From a screen towards the viewer, level.
 vector function VB_Toward( entity panel, vector eye )
 {
     vector flat = < eye.x - panel.GetOrigin().x, eye.y - panel.GetOrigin().y, 0 >
     return Length( flat ) > 1.0 ? Normalize( flat ) : <1,0,0>
 }
 
+// A flat rectangle at a screen: centred x across (to the viewer's right) and z up
+// from its base, depth towards the viewer, facing them. World planes only show
+// from one side and draw their image from the origin: the top-left corner,
+// running right and down.
 void function VB_Quad( int index, entity panel, vector toward, float x, float z, float w, float h, float depth, float alpha )
 {
     vector right = CrossProduct( toward, <0,0,1> )
@@ -208,12 +231,13 @@ void function VB_Draw( entity player )
     }
     float t = board.openT
     float top = VB_BOTTOM + VB_H
-
+    // While it materialises the card jitters sideways and flickers.
     float settle = VB_Ease( (t-0.1)/0.38 )
     float jitter = t < 0.48 ? 2.6*sin( t*97.0 )*( 1.0 - settle ) : 0.0
     float flicker = t < 0.48 ? ( sin( t*61.0 ) > 0.2 ? 1.0 : 0.45 + 0.55*settle ) : 0.95 + 0.05*sin( Time()*23.0 )
     float move = VB_EaseInOut( (t-0.12)/0.3 )
 
+    // The names, always: low over their screens, the open one settling into the card's header.
     for ( int i = 0; i < VB_MODES; i++ )
     {
         int q = VQ_NAME + i
@@ -236,7 +260,6 @@ void function VB_Draw( entity player )
         VB_Quad( q, panel, toward, x, z, w, h, 1.0, i == board.at ? flicker : 1.0 )
     }
     if ( board.at < 0 || !IsValid( board.panels[board.at] ) ) return
-
     int i = board.at
     entity panel = board.panels[i]
     vector toward = VB_Toward( panel, eye )
@@ -245,30 +268,36 @@ void function VB_Draw( entity player )
     vector accent = mine ? VB_GREEN : VB_ORANGE
     float centreZ = VB_BOTTOM + VB_H*0.5
 
+    // The projector beam: shoots up out of the screen, then pulses.
     float shoot = VB_Ease( t/0.16 )
     float beamTop = VB_BEAM_Z + ( VB_BOTTOM - VB_BEAM_Z )*shoot
     RuiSetFloat3( board.ruis[VQ_BEAM], "basicImageColor", accent )
     float pulse = 0.42 + 0.1*sin( Time()*4.0 )
     VB_Quad( VQ_BEAM, panel, toward, 0.0, ( VB_BEAM_Z + beamTop )*0.5, VB_W*( 0.4 + 0.6*shoot ), beamTop - VB_BEAM_Z, -0.4, ( t < 0.2 ? 0.9 : pulse + 0.3*flash )*min( 1.0, t/0.05 ) )
 
+    // Glass, flashing the accent colour when you vote.
     float glass = VB_Ease( (t-0.12)/0.2 )
     RuiSetFloat3( board.ruis[VQ_PANEL], "basicImageColor", VB_Mix( VB_GLASS, accent*0.55, flash*0.7 ) )
     VB_Quad( VQ_PANEL, panel, toward, jitter, centreZ, VB_W, VB_H*( 0.15 + 0.85*VB_Ease( (t-0.1)/0.22 ) ), 0.0, glass*flicker )
 
+    // Corner brackets: snap in from big, then breathe.
     float snap = VB_Ease( (t-0.06)/0.24 )
     float grow = 1.32 - 0.32*snap + 0.012*sin( Time()*2.2 ) + 0.05*flash
     RuiSetFloat3( board.ruis[VQ_BRACKETS], "basicImageColor", accent )
     VB_Quad( VQ_BRACKETS, panel, toward, jitter, centreZ, ( VB_W + 6.0 )*grow, ( VB_H + 6.0 )*grow, 0.5, snap*flicker )
 
+    // A scan line running down the card.
     float sweep = ( Time()*0.45 ) % 1.0
     RuiSetFloat3( board.ruis[VQ_SWEEP], "basicImageColor", accent )
     VB_Quad( VQ_SWEEP, panel, toward, 0.0, top - sweep*VB_H, VB_W - 4.0, 3.2, 0.3, t > 0.5 ? 0.35*sin( sweep*PI ) : 0.0 )
 
+    // The underline under the name.
     float line = VB_Ease( (t-0.38)/0.25 )
     float lineW = 70.0*line
     RuiSetFloat3( board.ruis[VQ_LINE], "basicImageColor", accent )
     VB_Quad( VQ_LINE, panel, toward, -VB_W*0.5 + VB_PAD + lineW*0.5, top - VB_PAD - VB_NAME_H - 2.5, lineW, 0.45, 0.6, 0.8*line )
 
+    // The votes, counting up when the card opens; a pop each time they change.
     int votes = minint( 99, GetGlobalNetInt( "plVotes" + i ) )
     float count = VB_Ease( (t-0.35)/0.4 )
     int shown = count >= 1.0 ? votes : int( votes*count + 0.5 )
@@ -287,18 +316,21 @@ void function VB_Draw( entity player )
     RuiSetFloat3( board.ruis[VQ_TENS], "basicImageColor", VB_Mix( accent, <1,1,1>, pop*0.6 ) )
     VB_Quad( VQ_TENS, panel, toward, right - dw*0.82 + jitter, digitsZ, dw, dh, 0.8, shown >= 10 ? digits : 0.0 )
 
+    // The text: the line about the mode types itself out.
     VB_Quad( VQ_TEXT, panel, toward, jitter, top - VB_TEXT_H*0.5, VB_W, VB_TEXT_H, 0.6, 0.0 )
     string about = VB_Description( i )
     int typed = minint( about.len(), maxint( 0, int( (t-0.45)*70.0 ) ) )
     RuiSetString( board.texts[0], "msgText", about.slice( 0, typed ) )
-    string status = mine ? "YOUR VOTE" : "USE THE SCREEN TO VOTE"
-    if ( !mine && GetGlobalNetInt( "plLastMode" ) == i ) status = "JUST PLAYED"
-    if ( i <= 3 ) status += "  /  PARTYPACK EXCLUSIVE"
+    string status = mine ? "Your vote" : "Use the screen to vote"
+    if ( !mine && GetGlobalNetInt( "plLastMode" ) == i ) status = "Just played"
+    // The pack's own modes, as opposed to Northstar's.
+    RuiSetString( board.texts[3], "msgText", i <= 3 || i >= 9 ? "Partypack exclusive" : "" )
     RuiSetString( board.texts[1], "msgText", status )
     RuiSetFloat3( board.texts[1], "msgColor", mine ? VB_GREEN : VB_DIM )
     RuiSetString( board.texts[2], "msgText", votes == 1 ? "VOTE" : "VOTES" )
     RuiSetFloat( board.texts[0], "msgAlpha", flicker )
     RuiSetFloat( board.texts[1], "msgAlpha", VB_Ease( (t-0.7)/0.25 )*flicker )
+    RuiSetFloat( board.texts[3], "msgAlpha", VB_Ease( (t-0.8)/0.25 )*flicker )
     RuiSetFloat( board.texts[2], "msgAlpha", digits )
 }
 

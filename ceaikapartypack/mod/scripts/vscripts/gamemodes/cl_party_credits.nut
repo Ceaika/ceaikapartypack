@@ -1,25 +1,32 @@
 global function PartyCredits_Init
 global function PartyCredits_Release
 
+// The party lobby's credits board (mp_coliseum): a "CREDITS" title floats over
+// CREDITS_SPOT, and up close it unfolds into a leaderboard-style hologram of the
+// developer and the playtesters. The rows are images from the pack's atlas
+// (artifacts/ceaika-ui-pak, intro.CREDITS). The board turns to face you.
+
 const vector CREDITS_SPOT = <838.93, 2.75, 59.03>
-const float CREDITS_SEE = 2600.0
-const float CREDITS_OPEN = 330.0
-const float CREDITS_CLOSE = 440.0
+const float CREDITS_SEE = 2600.0     // the floating title shows from this far
+const float CREDITS_OPEN = 330.0     // the board opens this close...
+const float CREDITS_CLOSE = 440.0    // ...and folds away again past this
 const int CREDITS_ROWS = 8
 
+// Board layout, world units: x across from the centre, z up from the floor.
 const float BOARD_W = 212.0
 const float BOARD_BOTTOM = 16.0
 const float BOARD_HEADER = 40.0
 const float ROW_GAP = 14.5
 const float ROW_W = 190.0
-const float ROW_H = 12.16
+const float ROW_H = 12.16            // ROW_W at the row images' 1000 x 64
 const float BOARD_PAD = 10.0
-const float TITLE_ASPECT = 3.449
+const float TITLE_ASPECT = 3.449     // the title image's 369 x 107
 const float TITLE_FAR_H = 34.0
 const float TITLE_OPEN_H = 26.0
 
-const vector CREDITS_ORANGE = <0.992,0.294,0.004>
-const vector CREDITS_HIGHLIGHT = <0.62,0.19,0.03>
+// Panels in the world take sRGB colours (the HUD's linear values come out red here).
+const vector CREDITS_ORANGE = <0.992,0.294,0.004>        // the loading screen's #FD4B01
+const vector CREDITS_HIGHLIGHT = <0.62,0.19,0.03>        // a deeper burnt orange behind Ceaika's row
 const vector CREDITS_BACK = <0.012,0.018,0.03>
 
 const int Q_BACK = 0
@@ -27,20 +34,22 @@ const int Q_TOP = 1
 const int Q_BOTTOM = 2
 const int Q_HIGHLIGHT = 3
 const int Q_TITLE = 4
-const int Q_ROW = 5
+const int Q_ROW = 5                  // Q_ROW + i: row i
 
 struct
 {
     array<var> topos
     array<var> ruis
     float floorZ = 0.0
-    float openT = 0.0
+    float openT = 0.0                // seconds into the opening (runs back when closing)
     bool open = false
     vector right = <0,1,0>
     vector toward = <1,0,0>
     bool released = false
 } credits
 
+// A transition is starting (we are leaving the map): give back the planes for
+// its card (the client has 64 in all) and stay off.
 void function PartyCredits_Release()
 {
     credits.released = true
@@ -72,7 +81,7 @@ bool function Credits_Create()
     foreach ( asset image in images )
     {
         var topo
-
+        // The client has 64 topologies in all: try again later rather than fail.
         try { topo = RuiTopology_CreatePlane( CREDITS_SPOT, <0,1,0>, <0,0,-1>, true ) }
         catch ( ex ) { Credits_Destroy(); return false }
         var rui = RuiCreate( $"ui/basic_image.rpak", topo, RUI_DRAW_WORLD, 0 )
@@ -100,7 +109,7 @@ void function Credits_Destroy()
 void function PartyCredits_Run()
 {
     OnThreadEnd( function() { Credits_Destroy(); } )
-
+    // The floor under the spot.
     TraceResults ground = TraceLine( CREDITS_SPOT, CREDITS_SPOT - <0,0,512>, null, TRACE_MASK_SOLID_BRUSHONLY, TRACE_COLLISION_GROUP_NONE )
     credits.floorZ = ground.fraction < 1.0 ? ground.endPos.z : CREDITS_SPOT.z - 60.0
     float last = Time()
@@ -131,7 +140,7 @@ void function PartyCredits_Run()
         if ( distance > 1.0 )
         {
             credits.toward = Normalize( flat )
-            credits.right = CrossProduct( credits.toward, <0,0,1> )
+            credits.right = CrossProduct( credits.toward, <0,0,1> )   // the viewer's right
         }
         bool wasOpen = credits.open
         if ( distance < CREDITS_OPEN ) credits.open = true
@@ -142,10 +151,14 @@ void function PartyCredits_Run()
     }
 }
 
+// A flat rectangle centred at x across and z up from the floor, depth units
+// towards the viewer (so the layers never fight), turned to face them.
 void function Credits_Quad( int index, float x, float z, float w, float h, float depth, float alpha )
 {
     vector centre = < CREDITS_SPOT.x, CREDITS_SPOT.y, credits.floorZ + z > + credits.toward*depth + credits.right*x
-
+    // World planes only show from the side cross( across, down ) points to, and
+    // draw their image from the origin along those two edges: start at the
+    // top-left corner and run right and down, so it faces you the right way up.
     vector origin = centre - credits.right*( w*0.5 ) + <0,0,h*0.5>
     RuiTopology_UpdatePos( credits.topos[index], origin, credits.right*max( w, 0.01 ), < 0, 0, -max( h, 0.01 ) > )
     RuiSetFloat( credits.ruis[index], "basicImageAlpha", w > 0.05 && h > 0.05 ? clamp( alpha, 0.0, 1.0 ) : 0.0 )
@@ -156,9 +169,9 @@ void function Credits_Draw( float distance )
     float t = credits.openT
     float boardH = Credits_BoardH()
     float top = BOARD_BOTTOM + boardH
-
+    // A light holographic shimmer.
     float shimmer = 0.9 + 0.06*sin( Time()*23.0 ) + 0.04*sin( Time()*61.0 )
-
+    // Unfolding: a line grows across, then opens to full height with a little overshoot.
     float across = Credits_Ease( t/0.18 )
     float tall = t <= 0.0 ? 0.0 : max( 0.012, Credits_EaseBack( (t-0.12)/0.32 ) )
     float h = boardH*tall
@@ -167,14 +180,15 @@ void function Credits_Draw( float distance )
     Credits_Quad( Q_BACK, 0.0, centreZ, BOARD_W*across, h, 0.0, 0.9*back )
     Credits_Quad( Q_TOP, 0.0, centreZ + h*0.5, BOARD_W*across, 1.6, 0.3, back )
     Credits_Quad( Q_BOTTOM, 0.0, centreZ - h*0.5, BOARD_W*across, 1.6, 0.3, back )
-
+    // The title: floating over the spot (bobbing) from afar, the board's header when open.
     float move = Credits_EaseInOut( t/0.4 )
     float far = clamp( ( CREDITS_SEE - distance )/600.0, 0.0, 1.0 )
     float floatZ = top + 18.0 + 4.0*sin( Time()*1.7 )
     float titleH = TITLE_FAR_H + ( TITLE_OPEN_H - TITLE_FAR_H )*move
     float titleZ = floatZ + ( top - BOARD_HEADER*0.5 - floatZ )*move
     Credits_Quad( Q_TITLE, 0.0, titleZ, titleH*TITLE_ASPECT, titleH, 0.6, far*shimmer )
-
+    // The rows slide in from the left one after another; Ceaika's (the developer)
+    // highlighted on an orange bar.
     for ( int i = 0; i < CREDITS_ROWS; i++ )
     {
         float e = Credits_Ease( (t - 0.32 - 0.05*i)/0.25 )

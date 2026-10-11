@@ -20,7 +20,7 @@ global function PH_WallSide
 global function PH_WallDistance
 global function PH_WallCrossed
 struct { array<vector> points } arena
-
+// Maps whose play area is limited to an outline (corners in order, any shape without self-crossings).
 bool function PH_ArenaMap()
 {
     return GetMapName()=="mp_colony02" || GetMapName()=="mp_angel_city"
@@ -40,6 +40,7 @@ array<vector> function PH_ArenaDefault()
     if(GetMapName()=="mp_angel_city")
         return [<1264.72,-3928.39,0>,<3222.52,-3895.27,0>,<3313.17,-3051.52,0>,<4173.78,-3008.31,0>,<4178.70,-2296.55,0>,<3930.81,-854.74,0>,
             <3267.51,-867.25,0>,<3210.09,113.459,0>,<2583.24,113.459,0>,<2583.24,1261.33,0>,<974.936,1261.33,0>,<974.936,265.21,0>]
+    // Colony: the outline drawn on the minimap and tuned in game (!phzone).
     return [< -1523,-1198,0>,< -518,-1145,0>,< -50,-1774,0>,<457,-1774,0>,<972.3,-2528.2,0>,<1512.7,-2561.3,0>,<1746.5,-2551.1,0>,
         <1933.7,-2587.6,0>,<1892,1128,0>,< -204.9,1155.3,0>,< -540.5,1246.9,0>,< -821.7,1068.5,0>,< -1531,989,0>]
 }
@@ -53,7 +54,7 @@ float function PH_ArenaCross(vector a,vector b,vector c)
 {
     return (b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x)
 }
-
+// Gift-wrap a convex outline. Kept for older clients; outlines now keep their notches.
 array<vector> function PH_ArenaHull(array<vector> points)
 {
     array<vector> hull
@@ -78,7 +79,7 @@ array<vector> function PH_ArenaHull(array<vector> points)
     hull.clear()
     return hull
 }
-
+// Counter-clockwise copy (inside on the left of each edge), keeping the corner order.
 array<vector> function PH_ArenaOrder(array<vector> points)
 {
     array<vector> result=clone points
@@ -95,7 +96,7 @@ bool function PH_ArenaSegmentsCross(vector a,vector b,vector c,vector d)
 {
     return ((PH_ArenaCross(a,b,c)>0.0)!=(PH_ArenaCross(a,b,d)>0.0)) && ((PH_ArenaCross(c,d,a)>0.0)!=(PH_ArenaCross(c,d,b)>0.0))
 }
-
+// True when no two edges cross each other.
 bool function PH_ArenaSimple(array<vector> points)
 {
     int n=points.len()
@@ -103,7 +104,7 @@ bool function PH_ArenaSimple(array<vector> points)
     {
         for(int j=i+1;j<n;j++)
         {
-            if(j==i+1 || (i==0 && j==n-1)) continue
+            if(j==i+1 || (i==0 && j==n-1)) continue // Neighbouring edges share a corner.
             if(PH_ArenaSegmentsCross(points[i],points[(i+1)%n],points[j],points[(j+1)%n])) return false
         }
     }
@@ -116,7 +117,7 @@ vector function PH_ArenaSegmentPoint(vector pos,vector a,vector b)
     t=max(0.0,min(1.0,t))
     return <a.x+ab.x*t,a.y+ab.y*t,0>
 }
-
+// Closest point on the outline (z=0).
 vector function PH_ArenaNearest(vector pos,array<vector> points)
 {
     vector best=<0,0,0>
@@ -131,7 +132,7 @@ vector function PH_ArenaNearest(vector pos,array<vector> points)
     }
     return best
 }
-
+// Distance to the outline: positive inside, negative outside. Works with notches.
 float function PH_ArenaPolygonDistance(vector pos,array<vector> points)
 {
     if(points.len()<3) return -100000.0
@@ -159,11 +160,14 @@ bool function PH_ArenaNearEdge(vector pos)
     return PH_ArenaPolygonDistance(pos,PH_ArenaPoints())<220.0 || pos.z>PH_ArenaZMax()-96.0 || pos.z<PH_ArenaZMin()+64.0
 }
 
+// Maps closed off by a few walls across their passages instead of an outline.
+// Walls are 2D lines with no height limit; the map geometry closes the rest.
 bool function PH_WallMap()
 {
     return GetMapName()=="mp_complex3"
 }
-
+// Pairs of wall ends: [a0,b0,a1,b1,...]. Each end is pushed 16 units further
+// out so a player cannot squeeze past a corner the wall only just touches.
 array<vector> function PH_Walls()
 {
     array<vector> raw
@@ -178,7 +182,8 @@ array<vector> function PH_Walls()
     }
     return walls
 }
-
+// Rough outline of the walled-in block (walls plus generous map-edge corners),
+// used only to choose spawns on the playable side.
 array<vector> function PH_WallSide()
 {
     if(GetMapName()=="mp_complex3")
@@ -194,7 +199,7 @@ float function PH_WallDistance(vector pos)
         nearest=min(nearest,Distance2D(pos,PH_ArenaSegmentPoint(pos,walls[i],walls[i+1])))
     return nearest
 }
-
+// Index of the first wall the move start->end passes through, or -1.
 int function PH_WallCrossed(vector start,vector end)
 {
     array<vector> walls=PH_Walls()

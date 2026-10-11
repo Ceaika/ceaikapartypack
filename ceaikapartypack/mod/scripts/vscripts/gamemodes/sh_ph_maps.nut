@@ -8,7 +8,9 @@ global function PH_MapParts
 global function PH_PartTop
 global function PH_PartOrigin
 global function PH_PartAngles
-
+// Extra pieces drawn with a disguise that the map places as separate props:
+// plants in planters, bottles in fridges. Offsets and angles are relative to
+// the disguise model; scale is relative to the disguise drawn at scale 1.
 global struct PHPart
 {
     asset owner
@@ -23,7 +25,7 @@ struct
     string map = ""
     array<PHPart> list
 } phParts
-
+// Generated from the checked per-map manifests. Keep model order identical on both realms.
 array<asset> function PH_MapModels()
 {
     if(GetMapName()=="mp_complex3") return [$"models/furniture/kitchen_set04_chair01.mdl",
@@ -257,7 +259,7 @@ PHPart function PH_Part(asset owner,asset model,vector offset,vector angles,floa
     part.top=top
     return part
 }
-
+// Generated from the maps' own placements (artifacts/prophunt-composites).
 array<PHPart> function PH_MapParts()
 {
     if(phParts.map==GetMapName()) return phParts.list
@@ -290,7 +292,7 @@ array<PHPart> function PH_MapParts()
     }
     return phParts.list
 }
-
+// Highest point of a disguise's extra pieces above the model origin (0 if none).
 float function PH_PartTop(asset owner)
 {
     float top=0.0

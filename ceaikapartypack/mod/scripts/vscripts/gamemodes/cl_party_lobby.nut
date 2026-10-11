@@ -1,21 +1,36 @@
 untyped
 global function Cl_PartyLobby_Init
 
+// Party lobby HUD, in the same style as the Juggernaut round card:
+//   round card (top right): heading, countdown clock with its bar, how many
+//     are ready and how many are needed, the leading vote and your vote;
+//   ready card under it: everyone in the lobby, READY / NOT READY;
+//   (the mode names, votes and descriptions over the screens are holograms:
+//   cl_party_votes.nut);
+//   the hold-to-ready bar under the crosshair.
 const int PL_SLOTS = 16
-const int PL_MODES = 9
-const vector PL_ACCENT = <0.35,0.82,1.0>
-const vector PL_GO = <0.3,0.92,0.55>
+const int PL_MODES = 11
+const vector PL_ACCENT = <1.0,0.32,0.06>  // the Party Pack orange (the intro and transition card)
+const vector PL_GO = <0.3,0.92,0.55>      // everyone ready
 const vector PL_TEXT = <0.95,0.97,1.0>
 const vector PL_STATUS = <0.78,0.84,0.9>
 const vector PL_AMBER = <1.0,0.67,0.27>
 const vector PL_TEAL = <0.25,0.9,0.8>
 const vector PL_DIM = <0.55,0.6,0.66>
-
+// Effect and Cause's elevator bossa nova, from the base game's sound bank.
 const string PL_MUSIC = "music_timeshift_elevator_bossanova"
 
 struct
 {
-
+    // round card
+    array<var> pool           // planes set aside up front, all or none (PartyLobby_Reserve)
+    var titleTopo             // "Party Lobby" in the intro's font
+    var title
+    array<var> digitTopos     // the countdown in the intro's font, with shadows
+    array<var> digits
+    array<var> digitShadows
+    var modeTopo              // the chosen mode's name, once it is picked
+    var modeImage
     var cardTopo
     var card
     var accentTopo
@@ -30,7 +45,7 @@ struct
     var leadName
     var leadDetail
     var mine
-
+    // ready card
     var readyTopo
     var ready
     var readyAccentTopo
@@ -39,7 +54,7 @@ struct
     var readyNames
     var readyYes
     var readyWait
-
+    // hold to ready
     var holdBackTopo
     var holdBack
     var holdFillTopo
@@ -57,9 +72,10 @@ void function Cl_PartyLobby_Init()
     PartyStatue_ClientInit()
 }
 
+// Same order as the server's lobby.modes.
 string function PartyLobby_ModeName( int index )
 {
-    array<string> names = ["JUGGERNAUT","HOT POTATO","PROP HUNT","BODY SWAP","FREE FOR ALL","THE HIDDEN","ONE IN THE CHAMBER","GUN GAME","INFECTION"]
+    array<string> names = ["JUGGERNAUT","HOT POTATO","PROP HUNT","BODY SWAP","FREE FOR ALL","THE HIDDEN","ONE IN THE CHAMBER","GUN GAME","INFECTION","GTFO","HUSH"]
     return index >= 0 && index < names.len() ? names[index] : ""
 }
 
@@ -85,7 +101,26 @@ var function PartyLobby_Rect( var topo, vector color, int sort )
 
 var function PartyLobby_Plane()
 {
-    return RuiTopology_CreatePlane( <0,0,0>, <1,0,0>, <0,1,0>, false )
+    return plHud.pool.pop()
+}
+
+// The client has 64 RUI topologies in all and the lobby's holograms take a lot
+// of them: take every plane the HUD needs at once, or none and try again later.
+bool function PartyLobby_Reserve( int count )
+{
+    for ( int i = 0; i < count; i++ )
+    {
+        var topo = null
+        try { topo = RuiTopology_CreatePlane( <0,0,0>, <1,0,0>, <0,1,0>, false ) }
+        catch ( ex )
+        {
+            foreach ( var held in plHud.pool ) RuiTopology_Destroy( held )
+            plHud.pool.clear()
+            return false
+        }
+        plHud.pool.append( topo )
+    }
+    return true
 }
 
 void function PartyLobby_Place( var topo, float x, float y, float w, float h )
@@ -93,6 +128,7 @@ void function PartyLobby_Place( var topo, float x, float y, float w, float h )
     RuiTopology_UpdatePos( topo, <x,y,0>, <w,0,0>, <0,h,0> )
 }
 
+// A line of the top-left text kind, by screen pixels.
 void function PartyLobby_Line( var rui, string text, vector color, float x, float y, bool live )
 {
     RuiSetString( rui, "msgText", text )
@@ -105,6 +141,18 @@ void function PartyLobby_Create()
 {
     asset CENTER = $"ui/cockpit_console_text_center.rpak"
     asset LEFT = $"ui/cockpit_console_text_top_left.rpak"
+    plHud.titleTopo = PartyLobby_Plane()
+    plHud.title = PartyLobby_Rect( plHud.titleTopo, PL_ACCENT, 100 )
+    RuiSetImage( plHud.title, "basicImage", PartyName_Image( "partylobby" ) )
+    for ( int i = 0; i < 2; i++ )
+    {
+        plHud.digitTopos.append( PartyLobby_Plane() )
+        plHud.digitShadows.append( PartyLobby_Rect( plHud.digitTopos[2*i], <0.18,0.004,0.0>, 100 ) )
+        plHud.digitTopos.append( PartyLobby_Plane() )
+        plHud.digits.append( PartyLobby_Rect( plHud.digitTopos[2*i+1], PL_TEXT, 101 ) )
+    }
+    plHud.modeTopo = PartyLobby_Plane()
+    plHud.modeImage = PartyLobby_Rect( plHud.modeTopo, PL_ACCENT, 100 )
     plHud.cardTopo = PartyLobby_Plane()
     plHud.card = PartyLobby_Rect( plHud.cardTopo, <0.015,0.02,0.03>, 98 )
     plHud.accentTopo = PartyLobby_Plane()
@@ -137,6 +185,8 @@ void function PartyLobby_Create()
 void function PartyLobby_HUD()
 {
     while ( !IsValid( GetLocalClientPlayer() ) ) WaitFrame()
+    // 8 card and bar planes, the title, two digits with shadows, the mode name.
+    while ( !PartyLobby_Reserve( 14 ) ) wait 1.0
     PartyLobby_Create()
     while ( true )
     {
@@ -144,12 +194,14 @@ void function PartyLobby_HUD()
         float bottom = PartyLobby_DrawCard( live )
         PartyLobby_DrawReady( live, bottom )
         PartyLobby_DrawHold( live )
-
+        // From arrival until a mode is picked.
         PartyLobby_Music( GetGameState() <= eGameState.Playing && GetGlobalNetInt( "plChosen" ) < 0 )
         WaitFrame()
     }
 }
 
+// Elevator music while the lobby is open. It fades out when a mode is picked,
+// under the "starting a new game" transition.
 void function PartyLobby_Music( bool on )
 {
     if ( on == plHud.music ) return
@@ -161,6 +213,8 @@ void function PartyLobby_Music( bool on )
     else FadeOutSoundOnEntity( player, PL_MUSIC, 2.0 )
 }
 
+// The track plays once per emit: start it again each time it ends. A newer
+// run (music stopped and started again) replaces this one.
 void function PartyLobby_MusicLoop( entity player, int run )
 {
     player.EndSignal( "OnDestroy" )
@@ -175,17 +229,20 @@ void function PartyLobby_MusicLoop( entity player, int run )
     }
 }
 
+// Ready players needed before the countdown starts (more than half).
 int function PartyLobby_Need( int total )
 {
     return maxint( 1, total / 2 + 1 )
 }
 
+// The mode with the most votes, -1 for none, -2 for a tie.
 int function PartyLobby_Leading()
 {
     int best = 0
     int leader = -1
     for ( int i = 0; i < PL_MODES; i++ )
     {
+        if ( !PartyLobby_ModeEnabled( i ) ) continue
         int votes = GetGlobalNetInt( "plVotes" + i )
         if ( votes > best ) { best = votes; leader = i; }
         else if ( votes == best && votes > 0 ) leader = -2
@@ -193,6 +250,10 @@ int function PartyLobby_Leading()
     return leader
 }
 
+// The lobby card, top right: "Party Lobby" in the intro's font, the countdown
+// in the same font with its bar (or the chosen mode's name once it is picked),
+// then a few plain lines: how many are ready, what the vote looks like and what
+// you have done. Returns its bottom edge.
 float function PartyLobby_DrawCard( bool live )
 {
     float width = GetScreenSize()[0]
@@ -201,7 +262,7 @@ float function PartyLobby_DrawCard( bool live )
     float w = 420.0*s
     float x = min( 0.76*width, width - w - 8.0*s )
     float y = 0.12*height
-    float tx = x + 16.0*s
+    float tx = x + 18.0*s
     int ready = GetGlobalNetInt( "plReadyCount" )
     int total = GetGlobalNetInt( "plPlayerCount" )
     int chosen = GetGlobalNetInt( "plChosen" )
@@ -213,31 +274,29 @@ float function PartyLobby_DrawCard( bool live )
     int secs = int( ceil( left ) )
     vector accent = everyone ? PL_GO : PL_ACCENT
 
-    string heading = "PARTY LOBBY  /  NEXT MATCH"
-    string clock = counting ? format( "%d:%02d", secs/60, secs%60 ) : ""
     string status = ""
-    if ( chosen >= 0 ) { heading = "PARTY LOBBY  /  STARTING"; clock = PartyLobby_ModeName( chosen ); }
-    else if ( everyone ) status = "EVERYONE READY  /  " + ready + " OF " + total
-    else if ( counting ) status = "MAJORITY READY  /  " + ready + " OF " + total + "\nEVERYONE READY CUTS IT TO 10 SECONDS"
-    else status = "WAITING FOR PLAYERS TO READY UP\n" + ready + " OF " + total + " READY  /  " + PartyLobby_Need( total ) + " NEEDED TO START"
-
-    int leader = PartyLobby_Leading()
+    if ( chosen < 0 )
+    {
+        if ( everyone ) status = "Everyone's ready"
+        else if ( counting ) status = ready + " of " + total + " ready\nEveryone ready cuts it to 10 seconds"
+        else status = ready + " of " + total + " ready, " + PartyLobby_Need( total ) + " needed to start"
+    }
     string leadName = ""
     string leadDetail = ""
     if ( chosen < 0 )
     {
+        int leader = PartyLobby_Leading()
         if ( leader >= 0 )
         {
             int votes = GetGlobalNetInt( "plVotes" + leader )
-            leadName = "LEADING  /  " + PartyLobby_ModeName( leader )
-            leadDetail = votes + ( votes == 1 ? " VOTE" : " VOTES" )
+            leadName = PartyLobby_ModeName( leader ) + " leads with " + votes + ( votes == 1 ? " vote" : " votes" )
         }
-        else if ( leader == -2 ) { leadName = "VOTE TIED"; leadDetail = "A tied mode is picked at random"; }
+        else if ( leader == -2 ) { leadName = "The vote is tied"; leadDetail = "One of the tied modes will be picked"; }
         else
         {
-            leadName = "NO VOTES YET"
+            leadName = "No votes yet"
             int last = GetGlobalNetInt( "plLastMode" )
-            leadDetail = last >= 0 ? "Random mode, not " + PartyLobby_ModeName( last ) : "Random mode"
+            leadDetail = last >= 0 ? "A random mode other than " + PartyLobby_ModeName( last ) + " will be picked" : "A random mode will be picked"
         }
     }
     entity me = GetLocalClientPlayer()
@@ -246,40 +305,94 @@ float function PartyLobby_DrawCard( bool live )
     string mine = ""
     if ( chosen < 0 )
     {
-        if ( myVote < 0 ) mine = "PRESS %use% AT A SCREEN TO VOTE"
-        else if ( !meReady ) mine = "YOUR VOTE  /  " + PartyLobby_ModeName( myVote ) + "   HOLD %use% TO READY UP"
-        else mine = "YOUR VOTE  /  " + PartyLobby_ModeName( myVote ) + "   READY"
+        if ( myVote < 0 ) mine = "Walk up to a screen and press %use% to vote"
+        else if ( !meReady ) mine = "You voted for " + PartyLobby_ModeName( myVote ) + ". Hold %use% to ready up"
+        else mine = "You voted for " + PartyLobby_ModeName( myVote ) + ". You're ready"
     }
 
+    // Top to bottom, in 1080p pixels scaled to the screen.
+    float titleH = 36.0*s
+    PartyLobby_Place( plHud.titleTopo, tx, y + 14.0*s, titleH*PartyName_Aspect( "partylobby" ), titleH )
+    RuiSetFloat3( plHud.title, "basicImageColor", accent )
+    RuiSetFloat( plHud.title, "basicImageAlpha", live ? 1.0 : 0.0 )
+    float cy = y + 14.0*s + titleH + 12.0*s
+
+    // The chosen mode's name, big.
+    bool picked = chosen >= 0
+    if ( picked )
+    {
+        string key = PartyLobby_ModeKey( chosen )
+        float mh = 50.0*s
+        RuiSetImage( plHud.modeImage, "basicImage", PartyName_Image( key ) )
+        PartyLobby_Place( plHud.modeTopo, tx, cy, mh*PartyName_Aspect( key ), mh )
+        cy += mh + 14.0*s
+    }
+    RuiSetFloat( plHud.modeImage, "basicImageAlpha", live && picked ? 1.0 : 0.0 )
+
+    // The countdown: seconds in the intro's font, and the bar under them.
+    string digits = counting ? string( minint( 99, secs ) ) : ""
+    float dh = 58.0*s
+    float dx = tx
+    for ( int i = 0; i < 2; i++ )
+    {
+        bool shown = live && i < digits.len()
+        if ( shown )
+        {
+            string glyph = digits.slice( i, i + 1 )
+            float dw = dh*PartyScore_Aspect( glyph )
+            RuiSetImage( plHud.digits[i], "basicImage", PartyScore_Image( glyph ) )
+            RuiSetImage( plHud.digitShadows[i], "basicImage", PartyScore_Image( glyph ) )
+            PartyLobby_Place( plHud.digitTopos[2*i], dx + 3.0*s, cy + 4.0*s, dw, dh )
+            PartyLobby_Place( plHud.digitTopos[2*i+1], dx, cy, dw, dh )
+            RuiSetFloat3( plHud.digits[i], "basicImageColor", secs <= 5 ? <1.0,0.35,0.25> : PL_TEXT )
+            dx += dw*0.94
+        }
+        RuiSetFloat( plHud.digits[i], "basicImageAlpha", shown ? 1.0 : 0.0 )
+        RuiSetFloat( plHud.digitShadows[i], "basicImageAlpha", shown ? 0.5 : 0.0 )
+    }
+    float barW = w - 36.0*s
+    if ( counting )
+    {
+        cy += dh + 10.0*s
+        PartyLobby_Place( plHud.barTopo, tx, cy, barW, 5.0*s )
+        PartyLobby_Place( plHud.fillTopo, tx, cy, max( 1.0, barW*clamp( left / length, 0.0, 1.0 ) ), 5.0*s )
+        cy += 5.0*s + 14.0*s
+    }
+    RuiSetFloat( plHud.bar, "basicImageAlpha", live && counting ? 0.9 : 0.0 )
+    RuiSetFloat3( plHud.fill, "basicImageColor", secs <= 5 ? <1.0,0.3,0.2> : accent )
+    RuiSetFloat( plHud.fill, "basicImageAlpha", live && counting ? 1.0 : 0.0 )
+
+    // The lines.
+    PartyLobby_Line( plHud.heading, "", accent, tx, y, false )
+    PartyLobby_Line( plHud.clock, "", PL_TEXT, tx, y, false )
     int statusLines = status == "" ? 0 : split( status, "\n" ).len()
-    bool bigClock = clock != ""
-    bool showBar = counting
-    float statusY = y + ( bigClock ? ( showBar ? 100.0 : 86.0 ) : 38.0 )*s
-    float leadY = statusY + ( statusLines*23.0 + ( statusLines > 0 ? 8.0 : 0.0 ) )*s
-    float mineY = leadY + ( leadName != "" ? 52.0 : 0.0 )*s
-    float h = mineY - y + ( mine != "" ? 30.0 : 4.0 )*s
+    PartyLobby_Line( plHud.status, status, PL_STATUS, tx, cy, live )
+    cy += ( statusLines*23.0 + ( statusLines > 0 ? 10.0 : 0.0 ) )*s
+    PartyLobby_Line( plHud.leadName, leadName, PL_AMBER, tx, cy, live )
+    if ( leadName != "" ) cy += 23.0*s
+    PartyLobby_Line( plHud.leadDetail, leadDetail, PL_STATUS, tx, cy, live )
+    if ( leadDetail != "" ) cy += 23.0*s
+    if ( leadName != "" ) cy += 10.0*s
+    PartyLobby_Line( plHud.mine, mine, PL_TEAL, tx, cy, live )
+    if ( mine != "" ) cy += 23.0*s
+    float h = cy - y + 12.0*s
 
     PartyLobby_Place( plHud.cardTopo, x, y, w, h )
     PartyLobby_Place( plHud.accentTopo, x, y, 4.0*s, h )
     RuiSetFloat( plHud.card, "basicImageAlpha", live ? 0.66 : 0.0 )
     RuiSetFloat3( plHud.accent, "basicImageColor", accent )
     RuiSetFloat( plHud.accent, "basicImageAlpha", live ? 1.0 : 0.0 )
-    float barW = w - 32.0*s
-    float frac = clamp( left / length, 0.0, 1.0 )
-    PartyLobby_Place( plHud.barTopo, tx, y + 84.0*s, barW, 5.0*s )
-    PartyLobby_Place( plHud.fillTopo, tx, y + 84.0*s, max( 1.0, barW*frac ), 5.0*s )
-    RuiSetFloat( plHud.bar, "basicImageAlpha", live && showBar ? 0.9 : 0.0 )
-    RuiSetFloat3( plHud.fill, "basicImageColor", secs <= 5 ? <1.0,0.3,0.2> : accent )
-    RuiSetFloat( plHud.fill, "basicImageAlpha", live && showBar ? 1.0 : 0.0 )
-    PartyLobby_Line( plHud.heading, heading, accent, tx, y + 10.0*s, live )
-    PartyLobby_Line( plHud.clock, clock, counting && secs <= 5 ? <1.0,0.35,0.25> : PL_TEXT, tx, y + 30.0*s, live )
-    PartyLobby_Line( plHud.status, status, PL_STATUS, tx, statusY, live )
-    PartyLobby_Line( plHud.leadName, leadName, PL_AMBER, tx, leadY, live )
-    PartyLobby_Line( plHud.leadDetail, leadDetail, PL_STATUS, tx, leadY + 22.0*s, live )
-    PartyLobby_Line( plHud.mine, mine, PL_TEAL, tx, mineY, live )
     return y + h
 }
 
+// Same order as the server's lobby.modes; the keys of the name images.
+string function PartyLobby_ModeKey( int index )
+{
+    array<string> keys = ["jugg","hotpotato","prophunt","bodyswap","ffa","hidden","chamber","gg","inf","gtfo","echo"]
+    return index >= 0 && index < keys.len() ? keys[index] : ""
+}
+
+// Everyone in the lobby and whether they are ready, in a card under the round card.
 void function PartyLobby_DrawReady( bool live, float top )
 {
     float width = GetScreenSize()[0]
@@ -298,8 +411,8 @@ void function PartyLobby_DrawReady( bool live, float top )
         if ( name.len() > 18 ) name = name.slice( 0, 17 ) + "."
         string gap = i == 0 ? "" : "\n"
         names += gap + name
-        yes += gap + ( isReady ? "READY" : " " )
-        waiting += gap + ( isReady ? " " : "NOT READY" )
+        yes += gap + ( isReady ? "Ready" : " " )
+        waiting += gap + ( isReady ? " " : "Not ready" )
     }
     int ready = GetGlobalNetInt( "plReadyCount" )
     int total = maxint( GetGlobalNetInt( "plPlayerCount" ), players.len() )
@@ -313,12 +426,13 @@ void function PartyLobby_DrawReady( bool live, float top )
     RuiSetFloat3( plHud.readyAccent, "basicImageColor", total > 0 && ready >= total ? PL_GO : PL_ACCENT )
     RuiSetFloat( plHud.readyAccent, "basicImageAlpha", live ? 1.0 : 0.0 )
     float tx = x + 16.0*s
-    PartyLobby_Line( plHud.readyHead, "READY UP  /  " + ready + " OF " + total, total > 0 && ready >= total ? PL_GO : PL_ACCENT, tx, y + 10.0*s, live )
+    PartyLobby_Line( plHud.readyHead, "Players, " + ready + " of " + total + " ready", total > 0 && ready >= total ? PL_GO : PL_ACCENT, tx, y + 10.0*s, live )
     PartyLobby_Line( plHud.readyNames, names, PL_TEXT, tx, y + 40.0*s, live )
     PartyLobby_Line( plHud.readyYes, yes, PL_GO, x + w - 120.0*s, y + 40.0*s, live )
     PartyLobby_Line( plHud.readyWait, waiting, PL_DIM, x + w - 120.0*s, y + 40.0*s, live )
 }
 
+// Progress bar under the crosshair while holding Use to ready up.
 void function PartyLobby_DrawHold( bool live )
 {
     entity player = GetLocalClientPlayer()

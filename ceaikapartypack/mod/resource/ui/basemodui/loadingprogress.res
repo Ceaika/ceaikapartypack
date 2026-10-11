@@ -201,6 +201,7 @@ Resource/UI/LoadingProgress.res
 		drawColor				"255 0 255 255"
 	}
 
+	// Ceaika's Partypack: the transition card, covering the map's loading picture.
 	PartyCard
 	{
 		ControlName             ImagePanel
