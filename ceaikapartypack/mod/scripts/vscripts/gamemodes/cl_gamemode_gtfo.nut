@@ -61,19 +61,14 @@ void function GTFO_Place(var topo, float x, float y, float w, float h)
     RuiTopology_UpdatePos(topo,<x,y,0>,<w,0,0>,<0,h,0>)
 }
 
-// Your hill time at the top of the screen, in the intro's font like Body
-// Swap's countdown (PartyScore_Image in cl_party_names.nut),
-// orange with the intro's shadow, mint while you are in the hill.
+// ur hill time at the top in the intro font, orange, mint while ur on the hill
 const int GTFO_SCORE_GLYPHS = 6               // up to "1234.5"
 const float GTFO_SCORE_HEIGHT = 66.0           // digit height on a 1080p screen
 const float GTFO_SCORE_TOP = 165.0             // from the top, clear of the score bar
 const vector GTFO_SCORE_ORANGE = <0.9823,0.0704,0.0003>
 const vector GTFO_SCORE_SHADOW = <0.18,0.004,0.0>
 
-// The same card as the other party modes (Hot Potato, Juggernaut): a dark
-// panel with a coloured edge, a title, a few lines of detail and a bar along
-// the bottom. When the laser is locked on you, the game's own Amped Weapons
-// crosshair countdown shows the time left, like Hot Potato's fuse.
+// same card as the other modes. when the laser locks u the amped weapons countdown shows up
 bool function GTFO_HudCreate()
 {
     array<var> topos
@@ -152,7 +147,7 @@ void function GTFO_DrawScore(float seconds,bool scoring)
     float width = GetScreenSize()[0]
     float s = GetScreenSize()[1]/1080.0
     float h = GTFO_SCORE_HEIGHT*s
-    // Laid out from the centre: total width first, glyphs lean right so they overlap a little.
+    // laid out from the middle, glyphs lean right and overlap a bit
     float total = 0.0
     for(int i=0;i<text.len();i++)
     {
@@ -202,7 +197,7 @@ void function GTFO_HudUpdate(entity player)
     center.z = GTFO_Floor(hill)
     float meters = Distance(player.GetOrigin(),center)*0.0254
 
-    // Locked on you: the game's crosshair countdown, beeping each second.
+    // locked on u: crosshair countdown, beeps every second
     RuiSetBool(gtfoHud.lockon,"isVisible",mine)
     if(mine)
     {
@@ -235,7 +230,7 @@ void function GTFO_HudUpdate(entity player)
     }
     else if(live)
     {
-        // Between locks: who is safest and who the laser will pick next.
+        // between locks: whos safest and who gets picked next
         title = format("NEXT LASER IN %d",int(ceil(left)))
         array<entity> ranking
         foreach(entity p in GetPlayerArray())
@@ -273,7 +268,7 @@ void function GTFO_HudUpdate(entity player)
     RuiSetString(gtfoHud.detail,"msgText",detail)
     RuiSetFloat2(gtfoHud.detail,"msgPos",<(x+16.0*s)/width,(y+44.0*s)/height,0>)
     RuiSetFloat(gtfoHud.detail,"msgAlpha",alpha)
-    // The bar runs down to the next lock, or to the strike once someone is locked.
+    // bar runs down to the next lock or the strike
     float interval = locked ? clamp(GetCurrentPlaylistVarFloat("gtfo_laser_warning",3.0),1.0,10.0) : max(5.0,GetCurrentPlaylistVarFloat("gtfo_elimination_seconds",30.0))
     float bx = x+16.0*s
     float by = y+h-16.0*s
@@ -286,8 +281,7 @@ void function GTFO_HudUpdate(entity player)
 
     GTFO_DrawScore(live && !out ? GTFO_GetTime(player)/100.0 : -1.0,scoring)
 
-    // The hill: a marker overhead (it shows the distance itself) and the
-    // scoring ring on the floor. The locked pilot: a red ring and beam.
+    // hill marker overhead + scoring ring. locked pilot gets a red ring and beam
     RuiSetBool(gtfoHud.waypoint,"isVisible",visible && state>0 && !scoring)
     RuiSetFloat3(gtfoHud.waypoint,"pos",center+<0,0,90>)
     RuiSetString(gtfoHud.waypoint,"statusText",format("Hill %d",hill+1))

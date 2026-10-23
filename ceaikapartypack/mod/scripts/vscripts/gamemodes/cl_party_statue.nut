@@ -1,10 +1,8 @@
 global function PartyStatue_ClientInit
 global function PartyStatue_Release
 
-// Over the party lobby's Titan statue of the session leader (_party_session.nut):
-// "SESSION TITAN", their name (gold, outlined in dark) and their wins this
-// session, floating in gold and turned to face you. The server says who and how many with
-// "party_leader <wins> <name>"; it glitches in again whenever that changes.
+// SESSION TITAN text over the statue of whoever won the most this session.
+// server sends party_leader <wins> <name>, glitches in again when it changes
 
 const float ST_TITLE_Z = 322.0       // above the statue's base
 const float ST_NAME_Z = 292.0
@@ -40,8 +38,7 @@ struct
     bool released = false
 } statue
 
-// A transition is starting (we are leaving the map): give back the planes for
-// its card (the client has 64 in all) and stay off.
+// transition starting, give back the planes and stay off
 void function PartyStatue_Release()
 {
     statue.released = true
@@ -54,7 +51,7 @@ void function PartyStatue_ClientInit()
     thread PartyStatue_Run()
 }
 
-// "party_leader <wins> <name>" (no name, or 0 wins: nobody).
+// party_leader <wins> <name>, no name or 0 wins means nobody
 void function PartyStatue_Command( array<string> args )
 {
     int wins = args.len() > 0 ? args[0].tointeger() : 0
@@ -71,7 +68,7 @@ bool function ST_Create()
     foreach ( asset image in images )
     {
         var topo
-        // The client has 64 planes in all: try again later rather than fail.
+        // out of planes, try later
         try { topo = RuiTopology_CreatePlane( <0,0,0>, <0,1,0>, <0,0,-1>, true ) }
         catch ( ex ) { ST_Destroy(); return false }
         var rui = RuiCreate( $"ui/basic_image.rpak", topo, RUI_DRAW_WORLD, 0 )
@@ -139,8 +136,7 @@ void function PartyStatue_Run()
 
 float function ST_Ease( float u ) { u = clamp( u, 0.0, 1.0 ); return 1.0 - (1.0-u)*(1.0-u)*(1.0-u); }
 
-// A flat rectangle over the statue: x across (to the viewer's right), z up from
-// its base, facing the viewer (see cl_party_votes.nut for the winding).
+// flat rect over the statue facing the viewer, same winding as the vote screens
 void function ST_Quad( int index, vector base, vector toward, float x, float z, float w, float h, float alpha )
 {
     vector right = CrossProduct( toward, <0,0,1> )
@@ -154,7 +150,7 @@ void function ST_Draw( entity player, vector base )
     vector eye = player.EyePosition()
     vector flat = < eye.x - base.x, eye.y - base.y, 0 >
     vector toward = Length( flat ) > 1.0 ? Normalize( flat ) : <1,0,0>
-    // A new leader (or a new win) glitches in; otherwise it bobs and shimmers.
+    // new leader glitches in, otherwise it bobs
     float t = Time() - statue.changedAt
     float settle = ST_Ease( t/0.5 )
     float jitter = t < 0.5 ? 5.0*sin( t*91.0 )*( 1.0 - settle ) : 0.0
@@ -164,7 +160,7 @@ void function ST_Draw( entity player, vector base )
 
     ST_Quad( SQ_TITLE, base, toward, jitter, ST_TITLE_Z + bob, ST_TITLE_H*ST_TITLE_ASPECT*grow, ST_TITLE_H*grow, flicker )
 
-    // The wins: the number, then "WINS", centred together.
+    // wins number then WINS centred together
     int wins = minint( 99, statue.wins )
     float dh = ST_DIGIT_H*grow
     float dw = dh*ST_DIGIT_ASPECT
@@ -181,8 +177,8 @@ void function ST_Draw( entity player, vector base )
     ST_Quad( SQ_ONES, base, toward, onesX, z, dw, dh, flicker )
     ST_Quad( SQ_WINS, base, toward, onesX + dw*0.5 + 6.0 + lw*0.5, z - dh*0.5 + lh*0.62, lw, lh, flicker )
 
-    // The name: centred by its length (the console font's capitals are about
-    // 0.6 of the size wide).
+    // centred by length, the console font capitals are about 0.6 of the size wide.
+    // measured that by squinting at screenshots
     string name = statue.leader.toupper()
     float width = name.len()*ST_NAME_SIZE*0.6/1920.0
     ST_Quad( SQ_NAME, base, toward, jitter, ST_NAME_Z + bob, ST_PLANE_W, ST_PLANE_H, 0.0 )
@@ -191,7 +187,7 @@ void function ST_Draw( entity player, vector base )
     RuiSetString( statue.name, "msgText", name )
     RuiSetFloat2( statue.name, "msgPos", < x, y, 0 > )
     RuiSetFloat( statue.name, "msgAlpha", flicker*settle )
-    // The outline: the name in dark, nudged to each corner behind it.
+    // dark outline = the name again nudged to each corner. poor mans outline
     array<float> dx = [ -0.004, 0.004, -0.004, 0.004 ]
     array<float> dy = [ -0.007, -0.007, 0.007, 0.007 ]
     for ( int i = 0; i < statue.outline.len(); i++ )

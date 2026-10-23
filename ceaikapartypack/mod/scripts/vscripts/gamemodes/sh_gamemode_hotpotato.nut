@@ -5,7 +5,7 @@ global const string GAMEMODE_HOTPOTATO = "hotpotato"
 
 void function Sh_HotPotato_Init()
 {
-    // The tacticals' callback the pack's keyvalues name (party_weapon_callbacks.nut).
+    // tactical callback the keyvalues point at
     Party_SetWeaponHandler( "tactical", HP_TacticalAttack )
     AddCallback_OnCustomGamemodesInit( HotPotato_Create )
     AddCallback_OnRegisteringCustomNetworkVars( HP_Network )
@@ -39,7 +39,7 @@ void function HotPotato_Create()
 
 bool function HP_CanExecute( entity attacker, entity target )
 {
-    // A held melee button must still tag, never execute the other player.
+    // held melee still tags, never executes. people kept executing each other lmao
     return false
 }
 
@@ -53,16 +53,15 @@ void function HP_Network()
     RegisterNetworkedVariable( "hpDropImpact", SNDC_GLOBAL, SNVT_TIME, 0.0 )
     RegisterNetworkedVariable( "hpTacticalClaimed", SNDC_PLAYER_EXCLUSIVE, SNVT_BOOL, false )
     RegisterNetworkedVariable( "hpTacticalSpent", SNDC_PLAYER_EXCLUSIVE, SNVT_BOOL, false )
-    // HUD: fuse countdown, round number and pilots still alive.
+    // hud: fuse, round, pilots alive
     RegisterNetworkedVariable( "hpFuseEnd", SNDC_GLOBAL, SNVT_TIME, 0.0 )
     RegisterNetworkedVariable( "hpRound", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "hpAlive", SNDC_GLOBAL, SNVT_INT, 0 )
-    // 0 waiting for pilots, 1 next round countdown, 2 round live.
+    // 0 waiting, 1 countdown, 2 live
     RegisterNetworkedVariable( "hpState", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "hpNextRound", SNDC_GLOBAL, SNVT_TIME, 0.0 )
 }
 
-// Keep the tactical callback in the original shared script as well.
 
 var function HP_TacticalAttack( entity weapon, WeaponPrimaryAttackParams attackParams )
 {
@@ -90,9 +89,7 @@ var function HP_TacticalAttack( entity weapon, WeaponPrimaryAttackParams attackP
         if ( limited && result > 0 )
         {
             player.SetPlayerNetBool( "hpTacticalSpent", true )
-            // Leave the weapon in place so phase/stim/grapple finish naturally.
-            // The shared callback blocks a second activation, even if stock
-            // grapple energy or another script refills the HUD meter.
+            // leave the weapon so phase/stim/grapple finish normally, the callback blocks a second use
         }
     #endif
     return result

@@ -12,7 +12,7 @@ struct
 
 void function Sh_GamemodeJugg_Init()
 {
-    // The weapon callbacks the pack's keyvalues name (party_weapon_callbacks.nut).
+    // weapon callbacks the keyvalues point at (party_weapon_callbacks.nut)
     Party_SetWeaponHandler( "smoke", Jugg_OnSmokeAttack )
     Party_SetWeaponHandler( "upgradecore", Jugg_OnUpgradeCoreAttack )
 	AddCallback_OnCustomGamemodesInit( CreateGamemodeJugg )
@@ -27,7 +27,7 @@ void function CreateGamemodeJugg()
 	GameMode_SetGameModeAnnouncement( GAMEMODE_JUGG, "ffa_modeDesc" )
 	GameMode_SetDefaultTimeLimits( GAMEMODE_JUGG, 9999, 0.0 )
 	GameMode_AddScoreboardColumnData( GAMEMODE_JUGG, "#SCOREBOARD_SCORE", PGS_ASSAULT_SCORE, 3 )
-	GameMode_AddScoreboardColumnData( GAMEMODE_JUGG, "#JUGG_SCOREBOARD_DAMAGE", PGS_DEFENSE_SCORE, 4 )
+	GameMode_AddScoreboardColumnData( GAMEMODE_JUGG, "#JUGG_SCOREBOARD_DAMAGE", PGS_DEFENSE_SCORE, 6 )
 	GameMode_SetColor( GAMEMODE_JUGG, [ 224, 112, 48, 255 ] )
 
 	AddPrivateMatchMode( GAMEMODE_JUGG ) // add to private lobby modes
@@ -53,7 +53,7 @@ void function JuggRegisterNetworkVars()
     RegisterNetworkedVariable("juggEmergencyShieldEnd",SNDC_PLAYER_GLOBAL,SNVT_TIME,0.0)
     RegisterNetworkedVariable("juggEmergencyShieldReady",SNDC_PLAYER_EXCLUSIVE,SNVT_BOOL,false)
     RegisterNetworkedVariable("juggDuelEnd",SNDC_GLOBAL,SNVT_TIME,0.0)
-    // Fold Weapon (Aegis 4): ready to call down; when its beam starts and ends.
+    // fold weapon (aegis 4): ready, beam start, beam end
     RegisterNetworkedVariable("juggFoldReady",SNDC_PLAYER_EXCLUSIVE,SNVT_BOOL,false)
     RegisterNetworkedVariable("juggFoldStart",SNDC_GLOBAL,SNVT_TIME,0.0)
     RegisterNetworkedVariable("juggFoldEnd",SNDC_GLOBAL,SNVT_TIME,0.0)
@@ -67,6 +67,7 @@ void function JuggRegisterNetworkVars()
     Remote_RegisterFunction("JuggBatteryHealFeedback")
     Remote_RegisterFunction("JuggBatteryEvent")
     Remote_RegisterFunction("JuggTitanHUDMetadata")
+    RegisterNetworkedVariable("gruntPatient",SNDC_GLOBAL,SNVT_ENTITY)
     Remote_RegisterFunction("JuggPowerHealthUpdate")
     RegisterNetworkedVariable( "juggPhase", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "juggRound", SNDC_GLOBAL, SNVT_INT, 0 )
@@ -122,7 +123,7 @@ var function Jugg_OnUpgradeCoreAttack(entity weapon,WeaponPrimaryAttackParams at
     array<entity> stale
     foreach(entity old,float deadline in juggCore.upgradeReadyAt) if(!IsValid(old)) stale.append(old)
     foreach(entity old in stale) delete juggCore.upgradeReadyAt[old]
-    // Reserve activation before invoking stock code or starting its animation thread.
+    // reserve the activation before stock code or its anim thread runs
     juggCore.upgradeReadyAt[weapon] <- Time()+max(1.0,weapon.GetCoreDuration()+0.5)
     #if SERVER
         print("[Jugg] Upgrade Core begin tier "+soul.GetTitanSoulNetInt("upgradeCount"))

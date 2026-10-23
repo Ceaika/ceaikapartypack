@@ -1,0 +1,1 @@
+WeaponData { Mods { jugg_grunt_npc_damage { "titanarmor_critical_hit_required" "0" "npc_damage_near_value_titanarmor" "15" "npc_damage_far_value_titanarmor" "12" } } }

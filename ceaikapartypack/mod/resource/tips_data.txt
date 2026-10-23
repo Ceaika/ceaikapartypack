@@ -3,7 +3,7 @@
 // ceaikapartypack_localisation_english.txt (artifacts/ceaika-loadscreen/tips.txt).
 Tips
 {
-	LastTipIndex			32
+	LastTipIndex			33
 	NewTipLevelDifference	1
 	NewTipDisplayChance		0.7
 	LevelRequirements

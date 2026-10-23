@@ -38,8 +38,7 @@ void function EchoScan_SetBlind(bool blind)
     var environment=GetLightEnvironmentEntity()
     if(IsValid(environment)) environment.ScaleSunSkyIntensity(blind ? 0.0 : 1.0,blind ? 0.0 : 1.0)
 }
-// Networked player bodies cannot be hidden with client Hide()/Show().
-// Keep all visibility operations below restricted to client-created echoes.
+// u cant Hide() a networked player on the client. everything below only touches client made echoes
 void function EchoScan_Clear()
 {
     foreach(table pulse in scan.pulses) EchoScan_DestroyPulse(pulse)
@@ -86,8 +85,7 @@ void function EchoScan_Screech(vector origin,float radius,float travel)
 void function EchoScan_Noise(entity source,float radius,float travel,float strength=1.0,bool trail=false,bool silhouette=true,bool continuous=false)
 {
     if(!IsValid(source)) return
-    // Low overlapping volumes mark the floor and nearby objects along a run.
-    // Their origins stay fixed after each step instead of following the hider.
+    // low overlapping volumes mark the floor along a run, they stay where they were placed
     vector origin=source.GetOrigin()+<0,0,24>
     if(trail) radius=clamp(radius,112.0,144.0)
     EchoScan_NoiseAt(origin,radius,travel,source,strength,false,silhouette,continuous)
@@ -97,10 +95,10 @@ void function EchoScan_NoiseAt(vector origin,float radius,float travel,entity so
     if(GetCurrentPlaylistVarInt("echo_noise_debug",0)>0) print("[ECHO-PATCH] requested origin="+origin+" canSee="+EchoScan_CanSee())
     if(!EchoScan_CanSee()) return
     if(Distance(GetLocalClientPlayer().EyePosition(),origin)>GetCurrentPlaylistVarFloat("echo_noise_range",3072.0)) return
-    // A grunt or melee while already running must not interrupt the moving echo.
+    // a grunt or melee while running cant interrupt the moving echo
     bool following=silhouette && IsValid(source) && (continuous || EchoScan_HasMovingEcho(source)) && EchoScan_NoisyMovement(source)
-    // Reuse twelve native light slots. Quiet slots are explicitly black every
-    // frame, so retired GPU light records cannot leave permanent sound dots.
+    // 12 light slots reused. quiet ones get set black every frame or u get permanent dots everywhere.
+    // the permanent dots bug haunted me for like 3 days
     int choice=-1
     float oldest=Time()+1.0
     foreach(int i,table noise in scan.noises)
@@ -113,7 +111,7 @@ void function EchoScan_NoiseAt(vector origin,float radius,float travel,entity so
         scan.noises.append({light=CreateClientSideDynamicLight(origin,<0,0,0>,<0,0,0>,1.0),active=false,start=0.0,origin=origin,radius=0.0,grow=0.0,echo=null,source=null,strength=1.0,logged=false,shown=false,context=0,nextHighlight=0.0,seen=-1.0,nextSight=0.0,decoy=false,following=false,nextPose=0.0,decoyId=-1,decoyPose=-1,moveFrom=origin,moveTo=origin,moveAt=0.0,moveUntil=0.0,decoyAnimAt=0.0,decoyAnimDuration=1.0,nextTrail=0.0})
         choice=scan.noises.len()-1
     }
-    // One moving hider cannot evict every other player's sound history.
+    // one hider moving cant wipe everyone else's sound history
     int sourceCount=0
     int sourceOldest=-1
     float sourceTime=Time()+1.0
@@ -161,7 +159,7 @@ void function EchoScan_AudibleJump(entity source)
 {
     if(!IsValid(source) || !EchoScan_CanSee()) return
     if(Length2D(source.GetVelocity())<GetCurrentPlaylistVarFloat("echo_sprint_speed",220.0)) return
-    // Only a heard sprint-jump opens this window. Merely entering the view does not.
+    // only a heard sprint jump opens this, just seeing someone doesnt
     scan.airRevealUntil[source] <- Time()+clamp(GetCurrentPlaylistVarFloat("echo_jump_reveal_seconds",0.9),0.1,2.0)
 }
 bool function EchoScan_NoisyMovement(entity source)
@@ -190,8 +188,7 @@ void function EchoScan_UpdateMovingEcho(table noise)
     entity source=expect entity(noise.source)
     if(!EchoScan_NoisyMovement(source))
     {
-        // Keep the last audible frame's transform and pose. In particular,
-        // never sample the new quiet/crouching position on this transition.
+        // keep the last audible frame's pose, never sample the new quiet position
         noise.following=false
         noise.seen=-1.0
         noise.nextSight=0.0
@@ -199,8 +196,7 @@ void function EchoScan_UpdateMovingEcho(table noise)
     }
     if(Time()>=noise.nextPose)
     {
-        // Pose snapshots are independent of both footsteps and the render rate.
-        // Only client-created entities are replaced or highlighted.
+        // pose snapshots dont care about footsteps or framerate
         EchoScan_CapturePose(noise,source)
         noise.nextPose=Time()+0.1
         noise.nextHighlight=0.0
@@ -210,8 +206,7 @@ void function EchoScan_UpdateMovingEcho(table noise)
         noise.echo.SetOrigin(source.GetOrigin())
         noise.echo.SetAngles(source.GetAngles())
     }
-    // An admitted continuous sound stays revealed across distance. Once quiet,
-    // its frozen clue resumes the normal five-seconds-after-seeing expiry.
+    // continuous sound stays revealed at any distance, once quiet it expires 5s after u see it
     noise.seen=-1.0
 }
 bool function EchoScan_NoiseVisible(vector eye,vector origin,float radius)
@@ -228,14 +223,12 @@ bool function EchoScan_NoiseVisible(vector eye,vector origin,float radius)
         if(pixel[0]<0 || pixel[0]>=screen[0] || pixel[1]<0 || pixel[1]>=screen[1]) continue
         vector direction=Normalize(point-eye)
         TraceResults trace=TraceLine(eye,point+direction*radius,viewer,TRACE_MASK_PLAYERSOLID | TRACE_MASK_BLOCKLOS,TRACE_COLLISION_GROUP_NONE)
-        // A clear ray into empty air is not a visible dot. Require a surface
-        // hit within the growing patch, including its front wall/ground edge.
+        // a clear ray into the sky isnt a dot, needs to actually hit a surface
         if(!trace.startSolid && trace.fraction<1.0 && Distance(trace.endPos,origin)<radius) return true
     }
     return false
 }
-// Return the enclosing radius needed to see distant sound patches. The shader
-// still leaves all surfaces outside the actual sound/scan volumes black.
+// radius needed to see far sound patches, everything else stays black
 float function EchoScan_UpdateNoises(vector eye)
 {
     float extent=0.0
@@ -244,8 +237,7 @@ float function EchoScan_UpdateNoises(vector eye)
         if(!IsValid(noise.light)) continue
         if(noise.active) { EchoScan_UpdateMovingEcho(noise); EchoScan_UpdateDecoy(noise); }
         float age=Time()-expect float(noise.start)
-        // A clue expires five seconds after an on-screen, unobstructed surface
-        // in its red volume is first seen. Proximity alone does not consume it.
+        // clue expires 5s after u actually see it on screen, being close isnt enough
         float linger=max(0.1,GetCurrentPlaylistVarFloat("echo_noise_seen_linger",5.0))
         float radius=max(1.0,noise.radius*clamp(age/noise.grow,0.0,1.0))
         if(noise.active && noise.seen<0.0 && Time()>=noise.nextSight)
@@ -268,8 +260,7 @@ float function EchoScan_UpdateNoises(vector eye)
         noise.light.SetLightColor(<1,0.25,0.0625>*alpha*noise.strength)
         if(IsValid(noise.echo) && Time()>=noise.nextHighlight)
         {
-            // Isolated sounds freeze; continuous movement follows every frame.
-            // Walls and distance never hide an activated silhouette.
+            // single sounds freeze, continuous movement follows every frame. walls dont hide it
             noise.echo.Show()
             noise.echo.Highlight_SetParam(noise.context,0,<1.4,0.025,0.015>*alpha*noise.strength)
             noise.echo.Highlight_SetCurrentContext(noise.context)
@@ -316,18 +307,16 @@ void function EchoScan_Update()
             if(!IsValid(source) || !IsAlive(source) || Time()>=until) expiredJumps.append(source)
         foreach(entity source in expiredJumps) delete scan.airRevealUntil[source]
         entity p=GetLocalClientPlayer()
-        // Absolute-time heartbeat prevents retired native light slots from
-        // keeping the material override enabled after role/death/round changes.
+        // heartbeat so dead light slots cant leave the material override stuck on
         if(!IsValid(scan.roleLight)) scan.roleLight=CreateClientSideDynamicLight(p.EyePosition(),<0,0,0>,<0.015625,0.0625,0.03125>,8192.0+Time()*8.0)
         scan.roleLight.SetOrigin(p.EyePosition())
         scan.roleLight.SetLightRadius(8192.0+Time()*8.0)
-        // A tiny, dim volume follows the feet. It is the fallback, not a second
-        // enclosing shell (two shells would occlude each other's reveals).
+        // tiny dim volume at the feet as a fallback. two shells hide each other so dont add another one
         vector origin=p.GetOrigin()+<0,0,16>
         int guideIndex=int(floor(clamp(GetCurrentPlaylistVarFloat("echo_guidance_radius",160.0),64.0,192.0)/16.0))-1
         float guideRadius=(guideIndex+1)*16.0
         float brightness=clamp(GetCurrentPlaylistVarFloat("echo_guidance_brightness",0.5),0.125,1.0)
-        // The shader draws self-lit dots on grass and ground; no Lambert falloff.
+        // self lit dots on the ground, no shading
         vector lightOrigin=p.GetOrigin()+<0,0,48>
         if(!IsValid(scan.guideLight)) scan.guideLight=CreateClientSideDynamicLight(lightOrigin,<0,0,0>,<0.0625,0.25,1>*brightness,guideRadius)
         scan.guideLight.SetOrigin(lightOrigin)
@@ -354,8 +343,7 @@ void function EchoScan_Update()
                 int pulseIndex=int(clamp(floor(pulse.radius*growth/16.0)-1,0,scan.models.len()-1))
                 float radius=(pulseIndex+1)*16.0
                 pulse.light.SetLightRadius(radius)
-                // Green channel carries growth/hold state without another light.
-                // The surface shader draws a white crest only while expanding.
+                // green channel = growth/hold state, white crest only while expanding
                 float waveFlag=growth<1.0 ? 0.0625 : 0.10
                 pulse.light.SetLightColor((pulse.screech ? <0.25,waveFlag,1> : <0.0625,0.25,1>)*alpha*power)
                 if(pulse.screech)
@@ -389,7 +377,6 @@ void function EchoScan_Update()
     }
 }
 
-// The two metadata lights retain the activation view basis and FOV.
 void function EchoScan_DestroyPulse(table pulse)
 {
     if(IsValid(pulse.light)) pulse.light.Destroy()
@@ -417,7 +404,7 @@ void function EchoScan_Capture(table pulse)
 
 void function EchoScan_CaptureDecoy(table noise)
 {
-    // Borrow an already-loaded pilot pose, without identifying or following its owner.
+    // borrow an already loaded pilot pose
     entity template=GetLocalClientPlayer()
     foreach(entity p in GetPlayerArray())
         if(IsValid(p) && IsAlive(p) && p.GetPlayerNetBool("echoActive") && !p.GetPlayerNetBool("echoHunter")) { template=p; break; }
@@ -428,13 +415,13 @@ void function EchoScan_CaptureDecoy(table noise)
     vector origin=expect vector(noise.origin)
     TraceResults ground=TraceLine(origin+<0,0,32>,origin-<0,0,256>,GetLocalClientPlayer(),TRACE_MASK_PLAYERSOLID | TRACE_MASK_BLOCKLOS,TRACE_COLLISION_GROUP_NONE)
     vector feet=!ground.startSolid && ground.fraction<1.0 ? ground.endPos : origin-<0,0,24>
-    // CapturePose copies a temporary source, so it cannot erase the real hider's echo.
+    // CapturePose copies a temp source so it cant wipe the real hider's echo
     EchoScan_CapturePose(noise,dummy)
     if(IsValid(noise.echo))
     {
         noise.echo.SetOrigin(feet)
         noise.echo.SetAngles(<0,GetLocalClientPlayer().EyeAngles().y,0>)
-        // Sample a sprint stride, then freeze it like a real player's sound echo.
+        // sample a sprint stride then freeze it like a real sound echo
         foreach(string sequence in ["Sprint_mp_forward","Run_forward_mp"])
         {
             if(!noise.echo.Anim_HasSequence(sequence)) continue
@@ -449,7 +436,7 @@ void function EchoScan_CaptureDecoy(table noise)
 }
 void function EchoScan_CapturePose(table noise,entity source)
 {
-    // Retain only the latest pose per source, while older sound patches keep their own expiry clocks.
+    // latest pose per source, old patches keep their own timers
     foreach(table old in scan.noises)
         if(old!=noise && old.source==source && IsValid(old.echo)) { old.echo.Destroy(); old.echo=null; old.following=false; }
     if(IsValid(noise.echo)) noise.echo.Destroy()
@@ -465,7 +452,6 @@ void function EchoScan_CapturePose(table noise,entity source)
     echo.Highlight_SetInheritHighlight(false)
     echo.Anim_SetPaused(false)
     echo.SetPlaybackRate(0.0)
-    // Native silhouette rendering is applied only to this client-created clone.
     int context=5 // HIGHLIGHT_CONTEXT_CLIENT; independent of copied player state.
     noise.context=context
     echo.Highlight_SetCurrentContext(context)
@@ -482,8 +468,7 @@ void function EchoScan_CapturePose(table noise,entity source)
     echo.Hide()
     if(noise.following)
     {
-        // Frequent movement snapshots must not spend a frame hidden or keep
-        // restarting the fade-in each time the previous pose is replaced.
+        // frequent snapshots cant spend a frame hidden or keep restarting the fade in
         echo.Highlight_ResetFlags()
         echo.Highlight_SetVisibilityType(HIGHLIGHT_VIS_ALWAYS)
         echo.Highlight_SetFadeInTime(0.0)
@@ -553,8 +538,7 @@ void function EchoScan_UpdateScanned()
     }
 }
 
-// Every decoy has one stable echo model. Position packets move that model;
-// they must not repeatedly allocate clones or erase a real hider's history.
+// one echo model per decoy, packets just move it
 void function EchoScan_DecoyMotion(int id,vector feet,float yaw,int pose)
 {
     if(!EchoScan_CanSee()) return
@@ -592,8 +576,7 @@ void function EchoScan_DecoyMotion(int id,vector feet,float yaw,int pose)
         }
         if(GetCurrentPlaylistVarInt("echo_noise_debug",0)>0) print("[ECHO-DECOY-POSE] id="+id+" sequence="+sequence+" valid="+found.echo.Anim_HasSequence(sequence))
     }
-    // A small number of stationary floor/object patches make a believable trail.
-    // Both the moving silhouette and these patches share the twelve-slot cap.
+    // a few still floor patches look like a trail. shares the 12 slot cap
     if(pose<2 && Time()>=found.nextTrail && DistanceSqr(previous,feet)>1.0)
     {
         found.nextTrail=Time()+0.5
@@ -614,7 +597,7 @@ void function EchoScan_UpdateDecoy(table noise)
     {
         float age=Time()-expect float(noise.decoyAnimAt)
         float cycle=age/expect float(noise.decoyAnimDuration)
-        // Run loops; slide settles in its low pose. Freeze when packets stop.
+        // run loops, slide settles low, freeze when packets stop
         noise.echo.SetCycle(noise.decoyPose==0 ? cycle-floor(cycle) : min(0.7,cycle))
         if(noise.decoyPose<2) noise.seen=-1.0
     }

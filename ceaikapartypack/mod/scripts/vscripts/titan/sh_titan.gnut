@@ -532,7 +532,7 @@ backIdle
 		}
 
 		entity rodeoPlayer = GetRodeoPilot( ejectTitan )
-		if ( IsValid( rodeoPlayer ) )
+		if ( IsValid( rodeoPlayer ) && rodeoPlayer.IsPlayer() )
 			Remote_CallFunction_Replay(
 				rodeoPlayer,
 				"ServerCallback_RodeoerEjectWarning",
@@ -685,7 +685,8 @@ backIdle
 			float gravityScale = expect float( rider.GetPlayerSettingsField( "gravityscale" ) )
 			vector riderVelocity = AnglesToForward( riderEjectAngles ) * ( speed * gravityScale ) * 0.95
 
-			ThrowRiderOff( rider, titan, riderVelocity )
+			if(rider.IsPlayer()) ThrowRiderOff( rider, titan, riderVelocity )
+        else rider.Die(titan,titan,{damageSourceId=eDamageSourceId.titan_explosion})
 
 			wait 0.05
 		}

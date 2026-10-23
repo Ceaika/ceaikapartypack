@@ -1,6 +1,7 @@
 "pilot_base"
 {
 
- "stand" { "PoseMods" { "jugg_fast" { "speed" "347" "sprintspeed" "520" } } }
- "crouch" { "PoseMods" { "jugg_fast" { "speed" "160" } } }
+ "global" { "ClassMods" { "jugg_grunt" { "wallrun" "0" "doubleJump" "0" } "gtfo_grapple" { "grapple_power_regen_delay" "2.8" "grapple_power_regen_rate" "3.15" } } }
+ "stand" { "PoseMods" { "jugg_fast" { "speed" "347" "sprintspeed" "520" } "jugg_shield_grunt" { "speed" "150" "sprintspeed" "224" } } }
+ "crouch" { "PoseMods" { "jugg_fast" { "speed" "160" } "jugg_shield_grunt" { "speed" "69" } } }
 }

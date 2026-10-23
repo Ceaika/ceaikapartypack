@@ -2,21 +2,12 @@ untyped
 global function PartyIntro_Init
 global function PartyTransition
 
-// The orange card. The loading screen (the pack's loadingprogress.res, built by
-// artifacts/ceaika-loadscreen) is the card in its corner layout: "Ceaika's
-// Partypack" in the top-left corner, the map's name huge on the right with the
-// mode under it, and the RE-45 spinning in the bottom-left corner. Leaving a map the card settles
-// into that layout, and arriving it starts from it, so the map change reads as
-// one continuous screen.
-//
-// Arriving in a fresh match (not when joining one in progress): everything but
-// the gun fades, the gun grows back to the middle, "Ceaika's" slides out of its
-// barrel, "Partypack" flies in and slams into it, "presents..." rises in. When
-// the match starts the gun fires: a white line shoots out of the barrel, the gun
-// slides away to the left as if we follow the bullet, and the card opens along
-// the line, the top half up and the bottom half down. "presents..." stays until
-// the mode's title banner goes. Arriving in the lobby plays the same, faster.
-// Images come from ceaika_ui.rpak (artifacts/ceaika-ui-pak).
+// the orange card. the loading screen is this card in its corner layout, so leaving and
+// arriving on a map looks like one continuous screen.
+// fresh match: gun comes to the middle, Ceaika's slides out of the barrel, Partypack slams in,
+// presents... rises, then the gun fires and the card splits open along the bullet line.
+// lobby arrival is the same thing faster.
+// this file is my baby and also the reason i havent slept
 const vector INTRO_ORANGE = <0.9823,0.0704,0.0003> // #FD4B01 (the HUD takes linear colour, not sRGB)
 const vector INTRO_FLASH = <1.0,0.25,0.06>          // brighter orange for the impact flash
 const vector INTRO_SHADOW = <0.18,0.004,0.0>        // deep red-brown drop shadow
@@ -25,17 +16,13 @@ const float INTRO_MAX_HOLD = 25.0  // never cover the game longer than this
 const float INTRO_IMPACT = 3.6     // "Partypack" hits the gun
 const float INTRO_READY = 4.2      // the logo has settled
 const int INTRO_SORT = 5000
-// The intro clip ships in the mod (audio/, built by artifacts/intro-music) as a
-// replacement for this campaign-only music event, so nothing else is affected.
+// the intro clip replaces a campaign only music event so nothing else is affected
 const string INTRO_MUSIC = "music_beacon_24a_blisktease"
 const string HUSH_GLITCH_MUSIC = "music_s2s_00a_intro"
-// The gun's muzzle (1080p pixels from the screen centre, the gun in the middle):
-// the bullet line and the opening run along its height.
+// gun muzzle position, the bullet line and the split run along it
 const float MUZZLE_X = 7.0
 const float MUZZLE_Y = -204.0
-// The corner layout, as on the loading screen (artifacts/ceaika-loadscreen,
-// loadscreen.py): x from the left (or from the right edge for the names), y
-// from the top, 1080p pixels; centres.
+// corner layout, same as the loading screen. 1080p pixels
 const float CORNER_GUN_X = 175.0
 const float CORNER_GUN_Y = 950.0
 const float CORNER_GUN_SCALE = 0.26
@@ -51,18 +38,16 @@ const float CORNER_MAP_Y = 449.2
 const float CORNER_MAP_H = 59.1    // the name images' height (capitals)
 const float CORNER_MODE_Y = 548.4
 const float CORNER_MODE_H = 47.2    // the name images' height (tallest letters to the tails of g, p...)
-// The loading screen draws the names as text, and the game caps text at about
-// VGUI_MAX_TALL pixels whatever the layout asks (its fonts there are 86 and
-// 62 units tall, under the cap up to 1600p): on bigger screens the names come
-// out smaller. The card draws them at that size too, so nothing jumps when
-// the loading screen takes over.
+// the loading screen draws names as text and the game caps text at ~128px no matter what.
+// so on big screens the names come out smaller and the card copies that so nothing jumps.
+// spent an entire evening wondering why my text wouldnt get bigger
 const float VGUI_MAX_TALL = 128.0
 const float LOADING_MAP_FONT = 86.0
 const float LOADING_MODE_FONT = 62.0
 const float CARD_LINE_Y = 265.0     // "presents...", "redirecting to lobby...", "starting a new game..."
 const float CARD_STARTING_MODE_Y = 380.0
 const float CARD_STARTING_MODE_H = 62.0
-// The reveal, in seconds after the shot is called.
+// the reveal timings after the shot
 const float FIRE_AT = 0.2           // the title has gone: fire
 const float FIRE_SLIDE = 0.3        // the gun starts sliding away
 const float FIRE_OPEN = 0.95        // the card starts opening along the line
@@ -84,8 +69,7 @@ struct IntroImage
     float drawDegrees = 0.0
 }
 
-// One card, as arrays: the images, and the fallback text for a map or mode
-// with no name image (a map from another mod).
+// one card as arrays: images + fallback text for maps with no name image
 const int CARD_TOP = 0          // the orange, above and below the muzzle's line
 const int CARD_BOTTOM = 1
 const int CARD_GUN = 2
@@ -119,7 +103,7 @@ struct
 void function PartyIntro_Init()
 {
     AddServerToClientStringCommandCallback( "party_next", PartyIntro_NextCommand )
-    // The private-match lobby still reports the previous mode: never play there.
+    // private match lobby still reports the previous mode, never play there
     if ( GetMapName() == "mp_lobby" ) return
     if ( GAMETYPE == "partylobby" )
     {
@@ -131,7 +115,7 @@ void function PartyIntro_Init()
     thread PartyIntro_Run()
 }
 
-// "party_next <mode> <map>": sent just before a transition starts.
+// party_next <mode> <map> comes right before a transition
 void function PartyIntro_NextCommand( array<string> args )
 {
     if ( args.len() != 2 ) return
@@ -141,9 +125,8 @@ void function PartyIntro_NextCommand( array<string> args )
 
 // ---------------------------------------------------------------- timing
 
-// The animations' clock: real time, but at most a 30th of a second a frame, so a
-// hitch (while the game is still loading in on a server) slows the animation for
-// a moment instead of skipping part of it. Read it once a frame.
+// animation clock. real time but max 1/30s per frame so a hitch slows it instead of skipping.
+// without this it skipped half the intro on the real server and it looked awful
 void function PartyIntro_ClockStart()
 {
     intro.clock = 0.0
@@ -158,9 +141,7 @@ float function PartyIntro_Clock()
     return intro.clock
 }
 
-// The first frames in a game come in fits and starts while the client finishes
-// loading: keep the loading screen's picture up until a run of frames is smooth
-// (or a few seconds pass), so the animation starts on clean frames.
+// first frames after loading are choppy as hell, hold the loading picture until frames are smooth
 void function PartyIntro_WaitSmooth( array<IntroImage> card, array<var> texts, string map, string mode )
 {
     float deadline = Time() + 4.0
@@ -177,8 +158,7 @@ void function PartyIntro_WaitSmooth( array<IntroImage> card, array<var> texts, s
 
 // ---------------------------------------------------------------- drawing
 
-// The client has only 64 topologies: when there is no room the image comes back
-// empty (topo null) with nothing left allocated, and PartyCard_TryCreate retries.
+// 64 topology limit again. no room = empty image, PartyCard_TryCreate retries
 IntroImage function PartyIntro_Image( asset image, float w, float h, int sort, bool shadow, int shadowSort = INTRO_SORT+1 )
 {
     IntroImage made
@@ -210,9 +190,7 @@ IntroImage function PartyIntro_Image( asset image, float w, float h, int sort, b
     return made
 }
 
-// Builds a card, or waits a frame and tries again while the client is out of
-// topologies (ones freed this frame only come back on the next). False if it
-// never fits; nothing is left allocated then.
+// build a card or wait a frame and retry when out of topologies. freed ones only come back next frame
 bool function PartyCard_TryCreate( array<IntroImage> card, array<var> texts, int sort, asset line, float lineW, float lineH, string mapKey, string modeKey, bool iris = false )
 {
     for ( int attempt = 0; attempt < 30; attempt++ )
@@ -231,7 +209,7 @@ bool function PartyCard_TryCreate( array<IntroImage> card, array<var> texts, int
     return false
 }
 
-// Frees one of a card's images (once; a freed image is skipped).
+// free one image, skips if already freed
 void function PartyCard_Free( array<IntroImage> card, int index )
 {
     if ( card[index].topo == null ) return
@@ -244,8 +222,7 @@ void function PartyCard_Free( array<IntroImage> card, int index )
     card[index].shadow = null
 }
 
-// Places an image by its centre, in 1080p pixels relative to the screen centre,
-// scaled by the slow push-in and by scale; its shadow (offset 7,9 at full size) scales along.
+// place an image by its centre in 1080p pixels, push in and scale applied, shadow scales too
 void function PartyIntro_Place( IntroImage image, float cx, float cy, float alpha, float scale = 1.0 )
 {
     image.drawX=cx; image.drawY=cy; image.drawScale=scale; image.drawDegrees=0.0;
@@ -262,7 +239,7 @@ void function PartyIntro_Place( IntroImage image, float cx, float cy, float alph
     RuiSetFloat( image.shadow, "basicImageAlpha", clamp( alpha, 0.0, 1.0 )*0.45 )
 }
 
-// As PartyIntro_Place, turned clockwise by degrees about the centre.
+// same thing but rotated
 void function PartyIntro_PlaceTurned( IntroImage image, float cx, float cy, float alpha, float scale, float degrees )
 {
     image.drawX=cx; image.drawY=cy; image.drawScale=scale; image.drawDegrees=degrees;
@@ -291,7 +268,6 @@ float function PartyIntro_EaseBack( float u )
     return 1.0 + 2.0*v*v*v + v*v
 }
 float function PartyIntro_EaseIn( float u ) { u = clamp( u, 0.0, 1.0 ); return u*u*u; }
-// Pulls back a little, then accelerates away.
 float function PartyIntro_EaseInBack( float u )
 {
     u = clamp( u, 0.0, 1.0 )
@@ -307,7 +283,7 @@ void function PartyIntro_Sound( string sound )
     if ( IsValid( player ) ) EmitSoundOnEntity( player, sound )
 }
 
-// The screen's width in 1080p pixels.
+// screen width in 1080p pixels
 float function PartyIntro_Width()
 {
     return GetScreenSize()[0] / ( GetScreenSize()[1] / 1080.0 )
@@ -327,8 +303,7 @@ var function PartyCard_TextRui( int sort )
     return rui
 }
 
-// mapKey, modeKey: a map and a playlist name, for the name images. iris: also
-// the pieces of the round reveal (PartyCard_IrisReveal).
+// mapKey modeKey for the name images. iris = also the round reveal pieces
 void function PartyCard_Create( array<IntroImage> card, array<var> texts, int sort, asset line, float lineW, float lineH, string mapKey, string modeKey, bool iris = false )
 {
     card.append( PartyIntro_Image( $"", 1.0, 1.0, sort-3, false ) )
@@ -336,13 +311,13 @@ void function PartyCard_Create( array<IntroImage> card, array<var> texts, int so
     card.append( PartyIntro_Image( $"rui/ceaika/intro_gun", 576.0, 494.0, sort+5, true, sort+4 ) )
     card.append( PartyIntro_Image( $"rui/ceaika/intro_ceaikas", 532.0, 148.0, sort+2, true, sort+1 ) )
     card.append( PartyIntro_Image( $"rui/ceaika/intro_partypack", 581.0, 143.0, sort+7, true, sort+6 ) )
-    // Muzzle mask: background-coloured panel over the row left of the muzzle, so
-    // "Ceaika's" is hidden inside the gun and revealed as it slides out.
+    // muzzle mask: a panel covering the row left of the muzzle so Ceaika's hides inside the gun.
+    // yes its literally a rectangle the same colour as the background. it works dont @ me
     card.append( PartyIntro_Image( $"", 1600.0, 200.0, sort+3, false ) )
     card.append( PartyIntro_Image( line, lineW, lineH, sort+7, true, sort+6 ) )
     card.append( PartyIntro_Image( $"rui/ceaika/flash", 256.0, 256.0, sort+9, false ) )
     card.append( PartyIntro_Image( $"", 1.0, 1.0, sort+8, false ) )
-    // Names at their corner size; texts[0]/[1] stand in when there is no image.
+    // names at corner size, texts[0]/[1] are the fallback
     asset mapImage = PartyName_Image( mapKey )
     asset modeImage = PartyName_Image( modeKey )
     card.append( PartyIntro_Image( mapImage == $"" ? $"rui/ceaika/flash" : mapImage, PartyName_Aspect( mapKey )*CORNER_MAP_H, CORNER_MAP_H, sort+8, false ) )
@@ -372,10 +347,7 @@ void function PartyCard_Rect( IntroImage image, float x0, float y0, float x1, fl
     RuiSetFloat( image.rui, "basicImageAlpha", x1 > x0 && y1 > y0 ? alpha : 0.0 )
 }
 
-// The orange, in two halves meeting along the muzzle's line. ox, oy shift the
-// card (1080p pixels; it comes in from the top or the right, so it reaches
-// past the other two edges to cover any overshoot). open: 0 closed, 1 open
-// (the top half gone off the top, the bottom half off the bottom).
+// the orange in two halves meeting at the muzzle line. open: 0 closed 1 open
 void function PartyCard_Back( array<IntroImage> card, float ox, float oy, float open, vector color, float alpha )
 {
     float width = GetScreenSize()[0]
@@ -390,8 +362,7 @@ void function PartyCard_Back( array<IntroImage> card, float ox, float oy, float 
     PartyCard_Rect( card[CARD_BOTTOM], left, seam + down, right, height + oy*s + down, color, alpha )
 }
 
-// A map or mode name, right-aligned at rightX (1080p pixels from the centre),
-// height h (capital height); fallback text when there is no image.
+// map or mode name right aligned at rightX, fallback text if no image
 void function PartyCard_Name( array<IntroImage> card, array<var> texts, int index, string text, float rightX, float cy, float h, float alpha )
 {
     float scale = h / card[index].h
@@ -407,7 +378,7 @@ void function PartyCard_Name( array<IntroImage> card, array<var> texts, int inde
     RuiSetFloat( fallback, "msgAlpha", clamp( alpha, 0.0, 1.0 ) )
 }
 
-// The names' heights (1080p pixels) as the loading screen shows them on this screen.
+// name heights as the loading screen shows them on this screen
 float function PartyCorner_MapH()
 {
     float s = GetScreenSize()[1] / 1080.0
@@ -419,34 +390,32 @@ float function PartyCorner_ModeH()
     return CORNER_MODE_H*min( 1.0, VGUI_MAX_TALL/( LOADING_MODE_FONT*s ) )
 }
 
-// The corner layout's positions (centre-relative 1080p pixels).
+// corner positions
 float function PartyCorner_X( float fromLeft ) { return fromLeft - PartyIntro_Width()*0.5; }
 float function PartyCorner_Y( float fromTop ) { return fromTop - 540.0; }
 float function PartyCorner_Right() { return PartyIntro_Width()*0.5 - CORNER_NAMES_RIGHT; }
 
-// The gun between the middle (u = 0) and the corner (u = 1), turned clockwise by degrees.
+// gun between middle (u=0) and corner (u=1)
 void function PartyCard_Gun( array<IntroImage> card, float u, float degrees, float alpha )
 {
     PartyIntro_PlaceTurned( card[CARD_GUN], PartyIntro_Lerp( -281.0, PartyCorner_X( CORNER_GUN_X ), u ), PartyIntro_Lerp( -70.0, PartyCorner_Y( CORNER_GUN_Y ), u ), alpha, PartyIntro_Lerp( 1.0, CORNER_GUN_SCALE, u ), degrees )
 }
 
-// The corner gun's spin, as the loading screen's spinner turns.
+// corner gun spin, matches the loading spinner
 float function PartyCard_Spin()
 {
     return ( Time()*CORNER_SPIN ) % 360.0
 }
 
-// "Ceaika's Partypack" between the logo (u = 0) and the corner (u = 1).
+// Ceaika's Partypack between logo (u=0) and corner (u=1)
 void function PartyCard_Title( array<IntroImage> card, float u, float alpha )
 {
     PartyIntro_Place( card[CARD_CEAIKAS], PartyIntro_Lerp( 303.0, PartyCorner_X( CORNER_CEAIKAS_X ), u ), PartyIntro_Lerp( -204.0, PartyCorner_Y( CORNER_CEAIKAS_Y ), u ), alpha, PartyIntro_Lerp( 1.0, CORNER_CEAIKAS_SCALE, u ) )
     PartyIntro_Place( card[CARD_PARTYPACK], PartyIntro_Lerp( 48.0, PartyCorner_X( CORNER_PARTYPACK_X ), u ), PartyIntro_Lerp( -35.0, PartyCorner_Y( CORNER_PARTYPACK_Y ), u ), alpha, PartyIntro_Lerp( 1.0, CORNER_PARTYPACK_SCALE, u ) )
 }
 
-// The loading screen's picture: the gun and the title in their corners, the
-// map's name and the mode on the right. (The engine wipes the names and the tip
-// the moment loading is done; the card puts the names back so they can leave
-// in style. The tip it cannot: the engine picks it at random and never says which.)
+// the loading screen picture. engine wipes the names the moment loading ends so the card puts
+// them back. cant do the tip tho, the engine picks it at random and never tells u which. annoying
 void function PartyCard_Corner( array<IntroImage> card, array<var> texts, string map, string mode, float alpha )
 {
     PartyCard_Back( card, 0.0, 0.0, 0.0, INTRO_ORANGE, 1.0 )
@@ -456,9 +425,7 @@ void function PartyCard_Corner( array<IntroImage> card, array<var> texts, string
     RuiSetFloat3( card[CARD_MASK].rui, "basicImageColor", INTRO_ORANGE )
 }
 
-// The corner layout's words leaving, t seconds in: "Ceaika's Partypack" shoots
-// off to the top left, the map's name off to the right and the mode after it.
-// Each pulls back a little first.
+// corner words leaving, each pulls back a bit first
 void function PartyCard_CornerOut( array<IntroImage> card, array<var> texts, string map, string mode, float t )
 {
     float width = PartyIntro_Width()
@@ -473,14 +440,11 @@ void function PartyCard_CornerOut( array<IntroImage> card, array<var> texts, str
     PartyCard_Name( card, texts, CARD_MODE, mode, PartyCorner_Right() + ( width*0.6 + 200.0 )*modeOut, PartyCorner_Y( CORNER_MODE_Y ), PartyCorner_ModeH(), 1.0 )
 }
 
-// The logo at time t of the intro's build-up: "Ceaika's" comes out of the
-// barrel, "Partypack" flies in and slams into the gun. The gun slides in from
-// the left first, unless gunInPlace (then the caller has brought it back).
-// dy moves the whole block (1080p pixels).
+// logo build up: Ceaika's out of the barrel, Partypack slams in
 void function PartyIntro_DrawLogo( array<IntroImage> card, float t, float dy, float out, bool gunInPlace = false )
 {
     float width = PartyIntro_Width()
-    // The impact shakes the logo block for a moment.
+    // impact shake
     float decay = t < INTRO_IMPACT ? 0.0 : max( 0.0, 1.0 - (t-INTRO_IMPACT)/0.35 )
     float shakeX = 7.0*decay*sin( t*71.0 )
     float shakeY = 5.0*decay*cos( t*53.0 ) + dy
@@ -490,15 +454,14 @@ void function PartyIntro_DrawLogo( array<IntroImage> card, float t, float dy, fl
     float gunDrawX = gunX + shakeX - 8.0*decay
     PartyIntro_Place( card[CARD_GUN], gunDrawX, -70.0 + shakeY, gunInPlace || t >= 0.9 ? out : 0.0 )
 
-    // "Ceaika's" starts hidden inside the gun and is revealed as it slides out
-    // past the muzzle: the mask covers its row up to the gun's front edge.
+    // Ceaika's starts hidden inside the gun, mask covers it up to the gun's front
     float muzzle = gunDrawX + 288.0 - 6.0
     PartyIntro_Place( card[CARD_MASK], muzzle - 800.0, -204.0 + shakeY, t < 0.9 ? 0.0 : out )
     float slide = PartyIntro_Ease( (t-1.8)/1.3 )
     float hiddenX = -281.0 + 288.0 - 6.0 - 266.0 - 12.0
     PartyIntro_Place( card[CARD_CEAIKAS], hiddenX + (303.0-hiddenX)*slide + shakeX, -204.0 + shakeY, t < 1.8 ? 0.0 : out )
 
-    // "Partypack" flies in from the right, speeding up into the gun, then bounces and settles.
+    // Partypack flies in from the right, bounces and settles
     float partyX = 48.0
     float partyStart = width*0.5 + 330.0
     float x = partyStart
@@ -507,12 +470,10 @@ void function PartyIntro_DrawLogo( array<IntroImage> card, float t, float dy, fl
     PartyIntro_Place( card[CARD_PARTYPACK], x + shakeX, -35.0 + shakeY, t < 2.9 ? 0.0 : out )
 }
 
-// Arriving: from the loading screen's last picture back to the full logo, at
-// time t of the intro's timeline. The title fades, the gun grows back to the
-// middle, then the logo builds up around it.
+// arriving: from the loading picture back to the full logo
 void function PartyCard_Arrival( array<IntroImage> card, array<var> texts, string map, string mode, float t, float spinFrom )
 {
-    // The words leave first, then the gun comes home.
+    // words leave first then the gun comes home
     float back = PartyIntro_EaseInOut( (t-0.45)/1.3 )
     float flash = t < INTRO_IMPACT ? 0.0 : max( 0.0, 1.0 - (t-INTRO_IMPACT)/0.25 )
     vector color = INTRO_ORANGE + (INTRO_FLASH-INTRO_ORANGE)*flash
@@ -520,8 +481,6 @@ void function PartyCard_Arrival( array<IntroImage> card, array<var> texts, strin
     RuiSetFloat3( card[CARD_MASK].rui, "basicImageColor", color )
     if ( t < 1.8 )
     {
-        // The words slide off the screen; the gun comes home, its spin
-        // winding down to upright on the way.
         PartyCard_CornerOut( card, texts, map, mode, t )
         float spin = spinFrom + CORNER_SPIN*min( t, 0.45 )
         float upright = ceil( ( spin + 90.0 )/360.0 )*360.0
@@ -534,31 +493,28 @@ void function PartyCard_Arrival( array<IntroImage> card, array<var> texts, strin
     PartyIntro_DrawLogo( card, t, 0.0, 1.0, true )
 }
 
-// The reveal at f seconds after it is called: the title goes, the gun fires a
-// white line out of the barrel and slides away to the left as if we follow the
-// bullet, then the card opens along the line. Returns false once it is open.
+// reveal: title goes, gun fires a white line and slides left like we follow the bullet,
+// card opens along the line. false once its open
 bool function PartyCard_Reveal( array<IntroImage> card, float f )
 {
     float width = PartyIntro_Width()
     float s = GetScreenSize()[1] / 1080.0
     PartyIntro_Place( card[CARD_MASK], 0.0, 0.0, 0.0 )
-    // The title fades and shrinks a little.
     float gone = 1.0 - clamp( f/FIRE_AT, 0.0, 1.0 )
     PartyIntro_Place( card[CARD_CEAIKAS], 303.0, -204.0, gone, 0.9 + 0.1*gone )
     PartyIntro_Place( card[CARD_PARTYPACK], 48.0, -35.0, gone, 0.9 + 0.1*gone )
-    // The shot: a kick back, then the gun slides off to the left.
+    // kick back then slide off left
     float shot = f - FIRE_AT
     float kick = shot < 0.0 ? 0.0 : sin( clamp( shot/0.2, 0.0, 1.0 )*PI )*( 1.0 - clamp( shot/0.2, 0.0, 1.0 ) )
     float slide = ( width*0.5 + 650.0 )*PartyIntro_EaseIn( (f-FIRE_SLIDE)/(FIRE_OPEN-FIRE_SLIDE) )
     float gunX = -281.0 - 18.0*kick - slide
     PartyIntro_Place( card[CARD_GUN], gunX, -70.0, 1.0 )
     float muzzle = gunX + 288.0
-    // The flash pops at the muzzle and fades.
+    // muzzle flash
     float pop = shot < 0.0 ? 0.0 : clamp( shot/0.06, 0.0, 1.0 )
     float flash = shot < 0.0 ? 0.0 : 1.0 - clamp( (shot-0.04)/0.18, 0.0, 1.0 )
     PartyIntro_Place( card[CARD_FLASH], muzzle + 26.0, MUZZLE_Y, pop*flash, 0.4 + 0.6*pop )
-    // The line: from the muzzle to the right edge in a blink, then it stretches
-    // left behind the gun; it brightens and fades as the card opens.
+    // the line shoots to the right edge then stretches left behind the gun
     float open = 0.0
     if ( shot >= 0.0 )
     {
@@ -575,7 +531,7 @@ bool function PartyCard_Reveal( array<IntroImage> card, float f )
     return f < FIRE_DONE
 }
 
-// The orange with a round hole at the muzzle, hole (1080p pixels) across.
+// orange with a round hole at the muzzle
 void function PartyCard_Hole( array<IntroImage> card, float hole )
 {
     float width = GetScreenSize()[0]
@@ -588,7 +544,7 @@ void function PartyCard_Hole( array<IntroImage> card, float hole )
     float x1 = hx + d*0.5
     float y0 = hy - d*0.5
     float y1 = hy + d*0.5
-    // The pieces overlap by a pixel: edge to edge, their seams show as faint lines.
+    // pieces overlap by a pixel or u see faint seams. took me forever to notice those
     PartyCard_Rect( card[CARD_TOP], -40.0, -40.0, width + 40.0, y0 + 1.0, INTRO_ORANGE, 1.0 )
     PartyCard_Rect( card[CARD_BOTTOM], -40.0, y1 - 1.0, width + 40.0, height + 40.0, INTRO_ORANGE, 1.0 )
     PartyCard_Rect( card[CARD_IRIS_LEFT], -40.0, y0, x0 + 1.0, y1, INTRO_ORANGE, 1.0 )
@@ -596,16 +552,13 @@ void function PartyCard_Hole( array<IntroImage> card, float hole )
     PartyCard_Rect( card[CARD_IRIS], x0, y0, x1, y1, INTRO_ORANGE, d > 1.0 ? 1.0 : 0.0 )
 }
 
-// The lobby's reveal at f seconds after it is called: the gun cocks back,
-// fires (a flash and a kick), a round hole opens from the muzzle until it
-// fills the screen, "Ceaika's" and "Partypack" are blown away from it and the
-// gun recoils out. Returns false once the lobby is fully revealed.
+// lobby reveal: gun cocks, fires, a hole opens from the muzzle until it fills the screen
 bool function PartyCard_IrisReveal( array<IntroImage> card, float f )
 {
     PartyIntro_Place( card[CARD_MASK], 0.0, 0.0, 0.0 )
     float cock = PartyIntro_EaseInOut( f/FIRE_AT )
     float shot = f - FIRE_AT
-    // Big enough to clear the far corner of the screen from the muzzle.
+    // big enough to clear the far corner
     float reach = 2.0*sqrt( pow( PartyIntro_Width()*0.5 + fabs( MUZZLE_X ), 2 ) + pow( 540.0 + fabs( MUZZLE_Y ), 2 ) ) + 80.0
     PartyCard_Hole( card, shot < 0.0 ? 0.0 : reach*pow( clamp( shot/IRIS_OPEN, 0.0, 1.0 ), 1.7 ) )
     float shake = shot < 0.0 ? 0.0 : max( 0.0, 1.0 - shot/0.25 )
@@ -613,20 +566,20 @@ bool function PartyCard_IrisReveal( array<IntroImage> card, float f )
     float sy = 7.0*shake*cos( f*61.0 )
     float blow = shot < 0.0 ? 0.0 : PartyIntro_Ease( shot/0.45 )
     float gone = shot < 0.0 ? 1.0 : 1.0 - clamp( (shot-0.1)/0.3, 0.0, 1.0 )
-    // The gun eases back as it cocks, then recoils hard off to the left.
+    // eases back to cock then recoils hard
     float gunX = -281.0 - 22.0*cock - 260.0*blow + sx
     PartyIntro_Place( card[CARD_GUN], gunX, -70.0 + 40.0*blow + sy, gone )
-    // "Ceaika's" and "Partypack" are blown out, away from the muzzle, growing.
+    // Ceaika's and Partypack get blown away from the muzzle
     PartyIntro_Place( card[CARD_CEAIKAS], 303.0 + 320.0*blow + sx, -204.0 - 120.0*blow + sy, gone, 1.0 + 0.35*blow )
     PartyIntro_Place( card[CARD_PARTYPACK], 48.0 + 380.0*blow + sx, -35.0 + 140.0*blow + sy, gone, 1.0 + 0.35*blow )
-    // The flash pops at the muzzle and fades.
+    // muzzle flash
     float pop = shot < 0.0 ? 0.0 : clamp( shot/0.08, 0.0, 1.0 )
     float fade = shot < 0.0 ? 0.0 : 1.0 - clamp( (shot-0.05)/0.22, 0.0, 1.0 )
     PartyIntro_Place( card[CARD_FLASH], gunX + 288.0 + 26.0, MUZZLE_Y + sy, pop*fade, 0.6 + 1.2*pop )
     return shot < IRIS_OPEN + 0.05
 }
 
-// The names the loading screen shows: the playlist's name and the map's (as text).
+// names the loading screen shows
 string function PartyCard_ModeName( string playlist )
 {
     if ( playlist == "" ) return ""
@@ -644,7 +597,7 @@ string function PartyCard_MapName( string map )
 void function PartyIntro_Run()
 {
     if(intro.hushPlaying) return
-    // Only a fresh match: someone joining mid-match goes straight in.
+    // fresh match only, joining mid match goes straight in
     if ( GetGameState() >= eGameState.Playing ) return
     if(GAMETYPE=="echo") intro.hushPlaying=true
     printt( "[PartyIntro] playing" )
@@ -660,7 +613,7 @@ void function PartyIntro_Run()
     if ( !PartyCard_TryCreate( card, texts, INTRO_SORT, $"rui/ceaika/intro_presents", 573.0, 140.0, mapKey, modeKey ) ) return
     string map = PartyCard_MapName( mapKey )
     string mode = PartyCard_ModeName( modeKey )
-    // The loading screen's picture stays up until the client is ready.
+    // loading picture stays until the client is ready
     while ( !IsValid( GetLocalClientPlayer() ) )
     {
         PartyCard_Corner( card, texts, map, mode, 1.0 )
@@ -670,16 +623,14 @@ void function PartyIntro_Run()
     if ( GetGameState() >= eGameState.Playing ) return
     intro.started = Time()
     intro.spinFrom = PartyCard_Spin()
-    // The clip has its own fade-out and plays to the end (about 11 s), a little
-    // past the hand-off into the game.
+    // the clip has its own fade out and plays to the end (~11s)
     entity player = GetLocalClientPlayer()
     PartyIntro_StopMusic(0.0)
     intro.musicEvent=GAMETYPE=="echo" ? HUSH_GLITCH_MUSIC : INTRO_MUSIC
     if ( IsValid( player ) ) { EmitSoundOnEntity( player, intro.musicEvent ); intro.musicPlaying = true; }
     if(GAMETYPE=="echo") waitthread PartyHushGlitch_Sequence(card,texts,map,mode)
     else waitthread PartyIntro_Sequence( card, texts, map, mode )
-    // A client holds only 64 RUI topologies (modes' HUDs and Prop Hunt's
-    // boundary walls need theirs): keep just "presents..." from here on.
+    // 64 topology limit AGAIN. keep just presents... from here so mode huds have room
     PartyCard_Destroy( card, texts, CARD_LINE )
     waitthread PartyIntro_Presents( card )
 }
@@ -696,20 +647,18 @@ void function PartyIntro_Sequence( array<IntroImage> card, array<var> texts, str
     {
         float t = PartyIntro_Clock()
         while ( nextCue < cues.len() && t >= cueTimes[nextCue] ) { PartyIntro_Sound( cues[nextCue] ); nextCue++; }
-        // Fire once the logo has built up and the match has started (stock
-        // modes: as soon as the gun is back).
+        // fire once the logo is built and the match started
         if ( fireAt < 0.0 && ( t >= INTRO_HOLD || ( intro.quick && t >= 1.8 ) ) && ( GetGameState() >= eGameState.Playing || t >= INTRO_MAX_HOLD ) )
         {
             fireAt = t
         }
-        // A slow push-in once the gun is home.
+        // slow push in
         if ( fireAt < 0.0 ) intro.zoom = 1.0 + 0.03*PartyIntro_Ease( (t-1.8)/4.0 )
-        // "presents..." rises in after the slam and stays (over the game too).
+        // presents... rises after the slam and stays
         float appear = PartyIntro_Ease( (t-3.9)/0.8 )
         PartyIntro_Place( card[CARD_LINE], 0.0, CARD_LINE_Y + 18.0*(1.0-appear), t < 3.9 ? 0.0 : appear )
         if ( fireAt >= 0.0 )
         {
-            // The names are long gone; the reveal draws the rest.
             PartyCard_Name( card, texts, CARD_MAP, map, 0.0, 0.0, CORNER_MAP_H, 0.0 )
             PartyCard_Name( card, texts, CARD_MODE, mode, 0.0, 0.0, CORNER_MODE_H, 0.0 )
             if ( !shot && t - fireAt >= FIRE_AT ) { shot = true; PartyIntro_Sound( FIRE_SOUND ); }
@@ -720,8 +669,7 @@ void function PartyIntro_Sequence( array<IntroImage> card, array<var> texts, str
     }
 }
 
-// "presents..." stays over the game until a second after the mode's title
-// banner appears (or 8 s if the mode shows none, e.g. Prop Hunt waiting for players).
+// presents... stays until a second after the mode's title banner (or 8s if theres none)
 void function PartyIntro_Presents( array<IntroImage> card )
 {
     printt( "[PartyIntro] into the game" )
@@ -741,7 +689,7 @@ void function PartyIntro_Presents( array<IntroImage> card )
     printt( "[PartyIntro] done" )
 }
 
-// Fades the theme out (0 stops it at once). Safe to call more than once.
+// fade the theme out, 0 = stop now. safe to call twice
 void function PartyIntro_StopMusic( float fade )
 {
     if ( !intro.musicPlaying ) return
@@ -753,17 +701,11 @@ void function PartyIntro_StopMusic( float fade )
 }
 
 // ---------------------------------------------------------------- transitions between matches
-// 0: end of a match, the orange drops in from above with "redirecting to lobby...".
-// 1: the lobby is launching, the orange sweeps in from the right with
-//    "starting a new game..." and the mode's name.
-// 0 and 1 build the logo up, the line under it blinks, then the card settles
-// into the loading screen's layout: the gun shrinks into the bottom-left
-// corner, "Ceaika's Partypack" lines up in the top-left corner and the map and
-// the mode fade in at the top right (the mode's name slides up there). They stay
-// up until the map changes (the client scripts are torn down then).
-// 3: the match is over, show everyone the scoreboard until the curtain drops.
-// Arriving in the lobby (PartyTransition_Arrive): the match intro's arrival and
-// reveal, faster.
+// 0: end of match, orange drops in from above, redirecting to lobby...
+// 1: lobby launching, orange sweeps in from the right, starting a new game... + the mode
+// both build the logo up then settle into the loading screen layout until the map changes.
+// 3: match over, show the scoreboard until the curtain drops.
+// arriving in the lobby is PartyTransition_Arrive
 const float TRANSITION_SPEED = 1.6 // the logo animation, against the intro's pace
 const float TRANSITION_LOGO = 0.6  // when the logo animation starts
 const float TRANSITION_CORNER = 3.0 // the card settles into the loading screen's layout (the server changes map at 4.6; clients start late)
@@ -780,7 +722,7 @@ void function PartyTransition( int kind, int mode )
     thread PartyTransition_Show( kind, mode )
 }
 
-// Keeps the scoreboard open (players can still close it) until the curtain covers it.
+// keeps the scoreboard open until the curtain covers it
 void function PartyTransition_Scoreboard()
 {
     transition.scoreboard = true
@@ -788,20 +730,19 @@ void function PartyTransition_Scoreboard()
     printt( "[PartyIntro] scoreboard" )
 }
 
-// Same order as the lobby's modes.
+// same order as the lobby modes
 string function PartyTransition_ModeKey( int mode )
 {
     array<string> keys = ["jugg","hotpotato","prophunt","bodyswap","ffa","hidden","chamber","gg","inf","gtfo","echo"]
     return mode >= 0 && mode < keys.len() ? keys[mode] : ""
 }
 
-// Time on the intro's timeline for transition time t.
 float function PartyTransition_LogoTime( float t )
 {
     return 0.9 + ( t - TRANSITION_LOGO ) * TRANSITION_SPEED
 }
 
-// The line under the logo: rises in, then blinks three times and stays.
+// line under the logo rises in and blinks 3 times
 float function PartyTransition_Blink( float since )
 {
     if ( since < 0.0 ) return 0.0
@@ -811,8 +752,7 @@ float function PartyTransition_Blink( float since )
     return appear
 }
 
-// Arriving in the lobby: the loading screen's picture until the lobby is
-// ready, then the arrival at the transitions' pace and the round reveal.
+// arriving in the lobby: loading picture until ready, then the arrival + reveal
 void function PartyTransition_Arrive()
 {
     transition.active = true
@@ -871,16 +811,15 @@ void function PartyTransition_Arrive()
 
 void function PartyTransition_Show( int kind, int mode )
 {
-    // The lobby's holograms hold a good share of the client's 64 planes: free
-    // them first, or the card cannot be made and there is no transition.
-    // They only come back on the next frame.
+    // lobby holograms hog the 64 planes so free them first or theres no transition at all.
+    // this bug made the transition just not exist for like 2 versions and nobody told me
     PartyVoteBoards_Release()
     PartyCredits_Release()
     PartyStatue_Release()
     transition.active = true
     intro.zoom = 1.0
     bool starting = kind == 1
-    // Where the map change goes.
+    // where the map change goes
     string modeKey = intro.nextMode != "" ? intro.nextMode : ( starting ? PartyTransition_ModeKey( mode ) : "partylobby" )
     string mapKey = intro.nextMap != "" ? intro.nextMap : ( starting ? "" : "mp_coliseum" )
     array<IntroImage> card
@@ -896,7 +835,7 @@ void function PartyTransition_Show( int kind, int mode )
     string toMode = PartyCard_ModeName( modeKey )
     printt( "[PartyIntro] transition " + kind + " to " + toMode + " / " + map )
     PartyIntro_Sound( kind == 0 ? "Menu_GameSummary_ScreenSlideIn" : "UI_InGame_HalftimeText_Enter" )
-    // The intro's sound cues, at the transition's pace (no music).
+    // intro sound cues, no music
     array<string> cues = ["UI_InGame_FD_InfoCardSlideIn", "UI_InGame_FD_MetaUpgradeTextAppear", "Menu_GameSummary_ScreenSlideIn", "Menu_LoadOut_Weapon_Select", "UI_Menu_Item_Purchased_Stinger"]
     array<float> cueTimes = [0.9, 1.8, 2.9, INTRO_IMPACT, 3.9]
     int nextCue = 0
@@ -910,19 +849,18 @@ void function PartyTransition_Show( int kind, int mode )
         float width = PartyIntro_Width()
         float logo = PartyTransition_LogoTime( t )
         while ( nextCue < cues.len() && logo >= cueTimes[nextCue] ) { PartyIntro_Sound( cues[nextCue] ); nextCue++; }
-        // The curtain comes in with a little overshoot: from above at the end of
-        // a match, from the right when the lobby launches a mode.
+        // curtain comes in with a little overshoot
         float drop = 0.0
         float sweep = 0.0
         if ( kind == 0 ) drop = -1100.0*( 1.0 - PartyIntro_EaseBack( t/0.65 ) )
         else sweep = width*( 1.0 - PartyIntro_EaseBack( t/0.55 ) )
-        // The scoreboard draws above the curtain: close it as the curtain drops.
+        // scoreboard draws above the curtain so close it as the curtain drops
         if ( transition.scoreboard && kind == 0 ) { transition.scoreboard = false; HideScoreboard(); }
         float flash = logo < INTRO_IMPACT ? 0.0 : max( 0.0, 1.0 - (logo-INTRO_IMPACT)/0.25 )
         vector color = INTRO_ORANGE + (INTRO_FLASH-INTRO_ORANGE)*flash
         PartyCard_Back( card, sweep, drop, 0.0, color, 1.0 )
         RuiSetFloat3( card[CARD_MASK].rui, "basicImageColor", color )
-        // Settling into the loading screen's layout.
+        // settling into the loading layout
         float m = t - TRANSITION_CORNER
         if ( m >= 0.0 && !cornerSound ) { cornerSound = true; PartyIntro_Sound( "Menu_GameSummary_ScreenSlideIn" ); }
         float titleU = PartyIntro_EaseInOut( m/0.65 )
@@ -932,17 +870,15 @@ void function PartyTransition_Show( int kind, int mode )
         {
             PartyIntro_Place( card[CARD_MASK], 0.0, 0.0, 0.0 )
             PartyCard_Title( card, titleU, 1.0 )
-            // It starts spinning as it shrinks, ending in step with the corner's spin.
+            // starts spinning as it shrinks
             if ( spinBase < 0.0 ) spinBase = PartyCard_Spin()
             PartyCard_Gun( card, gunU, ( spinBase + CORNER_SPIN*m )*gunU, 1.0 )
         }
-        // The line rises in and blinks, then drops away as the card settles.
         float away = clamp( m/0.25, 0.0, 1.0 )
         float words = PartyTransition_Blink( t - phraseAt ) * ( 1.0 - away )
         float rise = 18.0*( 1.0 - PartyIntro_Ease( (t-phraseAt)/0.35 ) ) + 24.0*away
         PartyIntro_Place( card[CARD_LINE], 0.0, CARD_LINE_Y + rise + drop, words )
-        // The names: starting a mode its name shows under the line and slides up
-        // into the corner; the map (and the lobby's name) fade in there.
+        // starting a mode its name slides up into the corner, the map fades in
         float namesIn = clamp( (m-0.35)/0.4, 0.0, 1.0 )
         float right = PartyCorner_Right()
         if ( starting )
@@ -960,7 +896,7 @@ void function PartyTransition_Show( int kind, int mode )
     }
 }
 
-// The original logo/reveal choreography with a Hush-only digital breakdown.
+// same logo/reveal but with a glitchy breakdown for hush
 const int HUSH_GLITCH_FIRST = 11
 const int HUSH_GLITCH_BLOCKS = 10
 const int HUSH_GLITCH_GHOST = 21
@@ -1030,7 +966,6 @@ void function PartyHushGlitch_Draw(array<IntroImage> card,float t,bool extras)
     }
     RuiSetFloat3(card[CARD_FLASH].rui,"basicImageColor",<0.6,0.6,0.6>)
 
-    // Brief readable flips, with the original frame restored by the base draw.
     if(burst>0.12 && t>=3.6 && t<5.2)
     {
         bool inverted=t>=4.17 && t<4.51
@@ -1046,8 +981,7 @@ void function PartyHushGlitch_Draw(array<IntroImage> card,float t,bool extras)
         PartyHushGlitch_Transform(card[CARD_GUN],dx*0.55,-20.0*burst,gunFlip,gunFlip,gunWide,gunTall)
     }
     if(!extras) return
-    // Opaque background strips erase each original band before its true atlas
-    // subrectangle is redrawn sideways. No screenshot or extra texture atlas.
+    // background strips erase each band before its redrawn sideways
     for(int band=0;band<3;band++)
     {
         IntroImage original=card[band==0 ? CARD_GUN : band==1 ? CARD_CEAIKAS : CARD_PARTYPACK]
@@ -1059,7 +993,6 @@ void function PartyHushGlitch_Draw(array<IntroImage> card,float t,bool extras)
         float x=GetScreenSize()[0]*0.5+original.drawX*s-wide*0.5
         float y=GetScreenSize()[1]*0.5+original.drawY*s-high*0.5
         float offset=(band==1 ? -1.0 : 1.0)*(70.0+45.0*sin(floor(t*11.0)*2.4+band))*s
-        // Gun bands use its normal pose; its later flips/stretch take priority.
         float alpha=t>=3.60 && t<5.20 && (band!=0 || t<4.17) ? burst : 0.0
         PartyCard_Rect(mask,x,y,x+wide,y+high,background,alpha)
         PartyCard_Rect(cut,x+offset,y,x+wide+offset,y+high,<0.66,0.66,0.66>,alpha)
@@ -1098,7 +1031,7 @@ void function PartyHushGlitch_Sequence(array<IntroImage> card,array<var> texts,s
     print("[HushGlitch] start: original theme with synchronized glitch treatment")
     while(true)
     {
-        // Match the processed audio timeline after the initial smooth-frame wait.
+        // match the processed audio timeline after the smooth frame wait
         float t=Time()-intro.started
         while(cue<cues.len() && t>=cueTimes[cue]) { PartyIntro_Sound(cues[cue]);cue++; }
         intro.zoom=1.0+0.03*PartyIntro_Ease((t-1.8)/4.0)

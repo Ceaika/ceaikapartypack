@@ -2,7 +2,7 @@ untyped
 global function PH_ClientInit
 global function PH_Feedback
 const int PH_SLOTS = 5
-// Shared between PH_Feedback (server events) and the HUD thread.
+// shared between PH_Feedback and the hud thread
 struct
 {
     string toast = ""
@@ -28,6 +28,52 @@ void function PH_ClientInit()
     thread PH_HUD()
     thread PH_Visuals()
     thread PH_HunterHealthAudio()
+    thread PH_FoundOutlines()
+}
+// found props, mecha chameleon style. server leaves a hidden copy where a hider died
+// (ph_found) and the last one when hunters win (ph_last). we draw them outlined here,
+// green and red. my gf found the first bug in this in like 30 seconds btw
+void function PH_FoundOutlines()
+{
+    table<entity,entity> shown
+    while(true)
+    {
+        wait 0.25
+        PH_OutlineMarkers(shown,"ph_found",<0.15,1.4,0.25>)
+        PH_OutlineMarkers(shown,"ph_last",<1.5,0.08,0.05>)
+        foreach(entity marker,entity copy in clone shown)
+        {
+            if(IsValid(marker)) continue
+            if(IsValid(copy)) copy.Destroy()
+            delete shown[marker]
+        }
+    }
+}
+void function PH_OutlineMarkers(table<entity,entity> shown,string name,vector color)
+{
+    foreach(entity marker in GetEntArrayByScriptName(name))
+    {
+        if(marker in shown) continue
+        entity model=CreateClientSidePropDynamicClone(marker,marker.GetModelName())
+        shown[marker] <- model
+        if(!IsValid(model)) continue
+        model.Highlight_SetInheritHighlight(false)
+        int context=5
+        model.Highlight_SetFunctions(context,0,true,101,2.5,0,true)
+        model.Highlight_SetParam(context,0,color)
+        model.Highlight_SetCurrentContext(context)
+        model.Highlight_ResetFlags()
+        model.Highlight_SetVisibilityType(HIGHLIGHT_VIS_ALWAYS)
+        model.Highlight_SetNearFadeDist(0.0)
+        model.Highlight_SetFarFadeDist(100000.0)
+        model.Highlight_SetFadeInTime(0.2)
+        model.Highlight_SetFadeOutTime(0.0)
+        model.Highlight_SetLifeTime(Time()+600.0)
+        model.Highlight_StartOn()
+        model.Highlight_HideInside(0.0)
+        model.Highlight_ShowOutline(0.0)
+        model.Show()
+    }
 }
 void function PH_Send( string command )
 {
@@ -40,8 +86,7 @@ void function PH_PressDecoy( entity player ) { PH_Send( "ph_decoy" ) }
 void function PH_PressLock( entity player ) { PH_Send( "ph_lock" ) }
 void function PH_PressFreeze( entity player ) { PH_Send( "ph_freeze" ) }
 
-// The server confirms each prop action (or refuses it). Show a short line under
-// the crosshair, flash the matching action slot and play a sound.
+// server says yes or no to a prop action, show it under the crosshair + flash the slot
 void function PH_Feedback( int kind, int value )
 {
     entity p = GetLocalClientPlayer()
@@ -107,7 +152,7 @@ var function PH_HudText( asset kind, float size, vector color, int sort )
     RuiSetFloat3( rui, "msgColor", color )
     return rui
 }
-// A flat HUD rectangle. Several images may share one topology (same rectangle).
+// flat hud rectangle, a few images can share one topology
 var function PH_HudRect( var topo, vector color, float alpha, int sort )
 {
     var rui = RuiCreate( $"ui/basic_image.rpak", topo, RUI_DRAW_HUD, sort )
@@ -126,8 +171,8 @@ void function PH_TextAt( var rui, string text, float x, float y, float alpha, fl
     RuiSetFloat( rui, "msgAlpha", alpha )
 }
 
-// HUD elements live here so each drawing step can be its own small function
-// (Squirrel limits how many locals one function may have).
+// hud stuff lives in a struct so every draw step can be its own function
+// (squirrel has a limit on locals per function and i hit it. twice)
 struct
 {
     var waitTopo
@@ -171,22 +216,22 @@ void function PH_HudCreate()
 {
     asset LEFT = $"ui/cockpit_console_text_top_left.rpak"
     asset CENTER = $"ui/cockpit_console_text_center.rpak"
-    // Hunter wait screen during the hide phase.
+    // hunter wait screen during hide phase
     phUi.waitTopo = PH_NewTopo()
-    // The near-black the game shows a video's black as (PH_WaitVideo), so the
-    // waiting video's edge does not show.
+    // the near black the game draws a video's black as, so the video edge doesnt show.
+    // took me way too long to figure out why there was a visible box
     phUi.waitBack = PH_HudRect( phUi.waitTopo, <0.0024,0.0024,0.0024>, 0.0, 105 )
     phUi.waitText = PH_HudText( CENTER, 38.0, <1,1,1>, 121 )
     phUi.waitText2 = PH_HudText( CENTER, 38.0, <1,1,1>, 121 )
     phUi.waitText3 = PH_HudText( CENTER, 38.0, <1,1,1>, 121 )
-    // Round status panel (left, under the minimap).
+    // round panel, left under the minimap
     phUi.statusTopo = PH_NewTopo()
     phUi.statusBack = PH_HudRect( phUi.statusTopo, <0.015,0.025,0.035>, 0.0, 109 )
     phUi.statusAccentTopo = PH_NewTopo()
     phUi.statusAccent = PH_HudRect( phUi.statusAccentTopo, PH_Teal(), 0.0, 110 )
     phUi.statusTitle = PH_HudText( LEFT, 30.0, <1,1,1>, 111 )
     phUi.statusDetail = PH_HudText( LEFT, 19.0, PH_Muted(), 111 )
-    // Prop panel: disguise name, health bar, action slots.
+    // prop panel: disguise name, hp bar, action slots
     phUi.propTopo = PH_NewTopo()
     phUi.propBack = PH_HudRect( phUi.propTopo, <0.01,0.015,0.02>, 0.0, 108 )
     phUi.nameText = PH_HudText( LEFT, 26.0, <1,1,1>, 111 )
@@ -264,9 +309,7 @@ void function PH_HudWait( entity p )
     RuiSetString( phUi.waitText, "msgText", "YOU ARE A HUNTER" )
     RuiSetString( phUi.waitText2, "msgText", "WAITING FOR PROPS TO HIDE" )
     RuiSetString( phUi.waitText3, "msgText", format( "HUNT STARTS IN %d SECONDS", remaining ) )
-    // The first two lines where the waiting video has them baked in (the same
-    // fractions of its height as artifacts/ph-wait-video/make.py), the countdown
-    // just under the video.
+    // first two lines sit where the wait video has them baked in, countdown under it
     float video = PH_WaitVideoHeight()/height
     RuiSetFloat2( phUi.waitText, "msgPos", <0,0.135*video-0.5,0> )
     RuiSetFloat2( phUi.waitText2, "msgPos", <0,0.191*video-0.5,0> )
@@ -274,13 +317,9 @@ void function PH_HudWait( entity p )
     PH_WaitVideo( p, waiting )
 }
 
-// Something to watch while the props hide: the waiting screen as a video
-// (mod/media/ceaika_ph_wait.bik, built by artifacts/ph-wait-video/make.py): the
-// first two lines, and a Subway Surfers clip under them that fades in from
-// black over 15 s. The engine's video panel sits at the top-left corner, over
-// the HUD, and fits the video into it keeping its shape. The video is 2:1 and
-// the panel full width and half as tall, so it fills the panel exactly and
-// leaves the bottom of the screen to the countdown (waitText3).
+// something to watch while props hide. its literally subway surfers. dont judge me.
+// the video panel is top left over the hud and keeps the 2:1 shape, so it fills the top half
+// and the countdown gets the bottom
 void function PH_WaitVideo( entity p, bool waiting )
 {
     if ( waiting == phUi.waitVideo ) return
@@ -289,8 +328,6 @@ void function PH_WaitVideo( entity p, bool waiting )
     p.ClientCommand( format( "playvideo_nointerrupt ceaika_ph_wait %d %d", int( GetScreenSize()[0] ), int( PH_WaitVideoHeight() ) ) )
 }
 
-// The waiting video's height in pixels (wider than 2:1 screens get a shorter
-// panel, the video centred in it).
 float function PH_WaitVideoHeight()
 {
     return min( GetScreenSize()[0]*0.5, GetScreenSize()[1]*0.9 )
@@ -342,7 +379,7 @@ void function PH_HudStatus( entity p )
     PH_TextAt( phUi.statusDetail, detail, x+16.0*s, y+42.0*s, 1.0, width, height )
 }
 
-// Disguise name and health above a row of action slots, bottom centre.
+// disguise name and hp above the action slots, bottom middle
 void function PH_HudProp( entity p )
 {
     float width = GetScreenSize()[0]
@@ -369,7 +406,7 @@ void function PH_HudProp( entity p )
         RuiSetFloat( phUi.nameText, "msgAlpha", 0.0 )
         RuiSetFloat( phUi.hpText, "msgAlpha", 0.0 )
     }
-    // One dark card behind the whole panel keeps the text readable on bright ground.
+    // dark card behind the panel so u can read it on bright ground
     PH_Place( phUi.propTopo, x0-12.0*s, y0-78.0*s, total+24.0*s, 160.0*s )
     RuiSetFloat( phUi.propBack, "basicImageAlpha", prop ? 0.55 : 0.0 )
     RuiSetFloat( phUi.hpBack, "basicImageAlpha", prop ? 0.8 : 0.0 )
@@ -393,7 +430,7 @@ void function PH_HudSlot( entity p, int i, bool prop, float x, float y )
     bool active = false
     bool usable = true
     float tauntLeft = max( 0.0, p.GetPlayerNetTime( "phTauntReady" ) - Time() )
-    // Solo debug (hide phase with no time limit) and !propdebug allow taunts early.
+    // solo debug and !propdebug can taunt early
     bool tauntOpen = phase == 2 || (phase == 1 && (GetGlobalNetBool( "phDebug" ) || GetGlobalNetTime( "phEnd" ) <= 0.0))
     if ( i == 0 ) { int left = PH_RerollsLeft( p ); value = debug ? "unlimited" : string( left ) + " left"; usable = debug || left > 0; }
     else if ( i == 1 ) { int left = PH_DecoysLeft( p ); value = debug ? "unlimited" : string( left ) + " left"; usable = debug || left > 0; }
@@ -420,7 +457,6 @@ void function PH_HudSlot( entity p, int i, bool prop, float x, float y )
     PH_TextAt( phUi.slotValues[i], value, x+12.0*s, y+47.0*s, alpha, width, height )
     if ( i == 4 )
     {
-        // Solo debug and !propdebug use a 1 s cooldown.
         float length = phase == 1 || GetGlobalNetBool( "phDebug" ) ? 1.0 : float( maxint( 3, GetCurrentPlaylistVarInt( "ph_taunt_cooldown", 10 ) ) )
         float done = tauntOpen ? 1.0 - clamp( tauntLeft/length, 0.0, 1.0 ) : 0.0
         PH_Place( phUi.tauntTopo, x, y+h-4.0*s, max( 1.0, w*done ), 4.0*s )
@@ -428,7 +464,7 @@ void function PH_HudSlot( entity p, int i, bool prop, float x, float y )
     }
 }
 
-// Feedback line under the crosshair: holds, then fades.
+// feedback line under the crosshair, holds then fades
 void function PH_HudToast()
 {
     float age = Time() - phHud.toastAt
@@ -437,8 +473,8 @@ void function PH_HudToast()
     RuiSetFloat( phUi.toastText, "msgAlpha", age < 1.2 ? 1.0 : clamp( 1.0-(age-1.2)/0.4, 0.0, 1.0 ) )
 }
 
-// Render all disguises from the player's predicted/interpolated position each
-// frame. These client-only models have no collision, parent or pilot animation.
+// draw every disguise from the predicted position each frame. client only models,
+// no collision no parent no anims. this is the only way it stopped jittering
 void function PH_Visuals()
 {
     table<entity,entity> visuals
@@ -495,8 +531,7 @@ void function PH_Input(int button)
     }
 }
 
-// Keep persistent low-health audio quiet for hunters after environmental damage.
-// Leave impact audio and the health HUD intact.
+// shut up the low hp audio for hunters after enviro damage, keep the rest
 void function PH_HunterHealthAudio()
 {
     array<string> loops = ["pilot_wounded_loop_1p", "pilot_critical_breath_loop_1p", "pilot_critical_drone_loop_1p"]
@@ -518,7 +553,7 @@ void function PH_HunterHealthAudio()
     }
 }
 
-// Plants, bottles and other separate map pieces that belong to a disguise.
+// plants bottles etc that are separate map pieces but belong to a disguise
 array<entity> function PH_CreatePieces( asset owner )
 {
     array<entity> list

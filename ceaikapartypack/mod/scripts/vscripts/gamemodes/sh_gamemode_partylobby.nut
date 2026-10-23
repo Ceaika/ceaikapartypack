@@ -2,15 +2,13 @@ global function Sh_PartyLobby_Init
 global function PartyLobby_ModeEnabled
 global const string GAMEMODE_PARTYLOBBY = "partylobby"
 
-// Keep vote IDs stable for the bridge and transition cards. These two slots
-// have no terminal and cannot win a vote or the random selection.
+// vote ids stay stable for the bridge + transition cards. these two slots cant win
 bool function PartyLobby_ModeEnabled( int index )
 {
     return index >= 0 && index < 11 && index != 5 && index != 7
 }
 
-// The party lobby: players are sent here between matches, vote for the next
-// mode at three screens and ready up; the lobby then launches the match.
+// party lobby: vote at the screens, ready up, lobby launches the match
 void function Sh_PartyLobby_Init()
 {
     AddCallback_OnCustomGamemodesInit( PartyLobby_Create )
@@ -41,14 +39,13 @@ void function PartyLobby_Create()
 
 void function PartyLobby_Network()
 {
-    // Match-end and lobby transitions are shown in every party mode.
+    // match end + lobby transitions show in every party mode
     Remote_RegisterFunction( "PartyTransition" )
     if ( GAMETYPE != GAMEMODE_PARTYLOBBY ) return
-    // Votes per mode, in the lobby's order (Juggernaut, Hot Potato, Prop Hunt,
-    // Body Swap, Free for All, The Hidden, One in the Chamber, Gun Game, Infection, GTFO).
+    // votes per mode in the lobby's order
     for ( int i = 0; i < 11; i++ )
         RegisterNetworkedVariable( "plVotes" + i, SNDC_GLOBAL, SNVT_INT, 0 )
-    // 0 until a majority is ready, then when the lobby launches.
+    // 0 until majority ready, then the launch time
     RegisterNetworkedVariable( "plDeadline", SNDC_GLOBAL, SNVT_TIME, 0.0 )
     RegisterNetworkedVariable( "plCountdownTotal", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "plReadyCount", SNDC_GLOBAL, SNVT_INT, 0 )

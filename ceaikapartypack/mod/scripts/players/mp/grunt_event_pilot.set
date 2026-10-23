@@ -1,0 +1,17 @@
+#base "pilot_grapple_male.set"
+"grunt_event_pilot"
+{
+ "global"
+ {
+  "sound_pain_layer1_loop" "null"
+  "sound_pain_layer1_end" "null"
+  "sound_pain_layer2_start" "null"
+  "sound_pain_layer2_loop" "null"
+  "sound_pain_layer3_loop" "null"
+  "sound_pain_layer3_end" "null"
+  "airAcceleration" "40"
+  "airSpeed" "30"
+  "slideMaxJumpSpeed" "230"
+  "slideDecel" "75"
+ }
+}

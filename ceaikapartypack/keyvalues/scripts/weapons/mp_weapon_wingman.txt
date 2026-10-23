@@ -1,0 +1,1 @@
+WeaponData { Mods { jugg_grunt_pistol { "titanarmor_critical_hit_required" "0" } } }

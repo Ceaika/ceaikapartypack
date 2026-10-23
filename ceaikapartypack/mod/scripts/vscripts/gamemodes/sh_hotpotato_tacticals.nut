@@ -1,2 +1,2 @@
-// Compatibility placeholder for an older mod.json during an in-place update.
-// Implementation moved into the original Hot Potato scripts in 0.5.1.
+// placeholder so old mod.json doesnt break during an update. the real code moved in 0.5.1
+// TODO: delete this eventually, im scared to

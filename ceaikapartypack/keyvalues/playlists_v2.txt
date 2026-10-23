@@ -17,7 +17,7 @@ playlists
                 classic_mp 1
                 max_players 14
                 max_teams 16
-                scorelimit 5
+                scorelimit 3
                 timelimit 9999
                 run_epilogue 1
                 earn_meter_pilot_multiplier 0
@@ -134,20 +134,12 @@ playlists
             }
             maps
             {
-                mp_forwardbase_kodai 1
-                mp_grave 1
-                mp_thaw 1
-                mp_black_water_canal 1
-                mp_eden 1
-                mp_drydock 1
                 mp_angel_city 1
-                mp_colony02 1
-                mp_relic02 1
-                mp_wargames 1
-                mp_rise 1
-                mp_homestead 1
-                mp_glitch 1
+                mp_thaw 1
                 mp_complex3 1
+                mp_black_water_canal 1
+                mp_glitch 1
+                mp_colony02 1
             }
         }
         prophunt
@@ -180,8 +172,8 @@ playlists
                 ph_angel_hunt_seconds 210
                 ph_complex_hide_seconds 60
                 ph_complex_hunt_seconds 210
-                ph_miss_penalty 10
-                ph_intermission 8
+                ph_miss_penalty 5
+                ph_intermission 40
                 ph_decoys 3
                 ph_decoy_stun 2.5
                 ph_whistle_seconds 30
@@ -242,7 +234,7 @@ playlists
                 classic_mp 1
                 max_players 14
                 max_teams 16
-                scorelimit 3
+                scorelimit 5
                 timelimit 9999
                 run_epilogue 1
                 earn_meter_pilot_multiplier 0
@@ -283,7 +275,7 @@ playlists
                 boosts_enabled 0
                 riff_allow_npcs 0
                 respawnprotection 0
-                echo_hide_seconds 20
+                echo_hide_seconds 30
                 echo_hunt_seconds 300
                 echo_intermission 8
                 echo_two_hunters_at 8
@@ -318,7 +310,7 @@ playlists
                 echo_walk_speed 35
                 echo_sprint_speed 220
                 echo_jump_speed 80
-                echo_land_speed 250
+                echo_land_speed 176.78
                 echo_land_hard_speed 800
                 echo_noise_radius_min 80
                 echo_noise_radius_max 240
@@ -425,20 +417,12 @@ playlists
                 {
                     maps
                     {
-                        mp_forwardbase_kodai 1
-                        mp_grave 1
-                        mp_thaw 1
-                        mp_black_water_canal 1
-                        mp_eden 1
-                        mp_drydock 1
                         mp_angel_city 1
-                        mp_colony02 1
-                        mp_relic02 1
-                        mp_wargames 1
-                        mp_rise 1
-                        mp_homestead 1
-                        mp_glitch 1
+                        mp_thaw 1
                         mp_complex3 1
+                        mp_black_water_canal 1
+                        mp_glitch 1
+                        mp_colony02 1
                     }
                 }
             }
@@ -571,3 +555,5 @@ playlists
         }
     }
 }
+
+

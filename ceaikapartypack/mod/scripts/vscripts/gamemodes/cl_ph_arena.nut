@@ -2,9 +2,8 @@ global function PH_ArenaVisualInit
 global function PH_ZoneBegin
 global function PH_ZonePoint
 global function PH_ZoneCommit
-// Each edge uses 7 RUI topologies and a client can only hold 64 in total (HUD
-// included), so only the nearest edges are drawn. 5 edges = 35 topologies,
-// leaving room for the prop HUD (12) and the game's own HUD.
+// each edge eats 7 rui topologies and u only get 64 total INCLUDING the hud.
+// so only the nearest edges get drawn. 5 edges = 35. yes i did the math on paper
 const int PH_ARENA_MAX_EDGES = 5
 struct
 {
@@ -40,9 +39,8 @@ void function PH_ArenaPanel(vector origin,vector right,vector up,float alpha,vec
     int index=arenaVisual.used
     if(index==arenaVisual.panels.len())
     {
-        // The client's 64 topologies can all be taken for a moment (the match
-        // intro's card holds a good share): skip this panel and try again a
-        // little later instead of letting the error end the walls for the match.
+        // all 64 topologies can be taken for a sec (the intro card hogs a bunch), so skip and retry
+        // instead of erroring and killing the walls for the whole match
         if(Time()<arenaVisual.retryAt) return
         var topo
         try { topo=RuiTopology_CreatePlane(origin,right,up,true) }
@@ -56,7 +54,7 @@ void function PH_ArenaPanel(vector origin,vector right,vector up,float alpha,vec
     RuiSetFloat(arenaVisual.panels[index],"basicImageAlpha",alpha)
     arenaVisual.used++
 }
-// Indices of the edges closest to pos, nearest first.
+// edges closest to pos, nearest first
 array<int> function PH_ArenaNearestEdges(vector pos,array<vector> points,int count)
 {
     array<float> distance
@@ -75,8 +73,7 @@ array<int> function PH_ArenaNearestEdges(vector pos,array<vector> points,int cou
     }
     return result
 }
-// Strong red curtain with bright rails and a wide corner post; drafts stay orange.
-// Spans this map's height limits; rails sit at the same fractions as Colony's original layout.
+// red curtain + bright rails + corner post, drafts stay orange
 void function PH_ArenaCurtain(vector a,vector b,vector colour,entity p)
 {
     vector along=b-a
@@ -91,7 +88,7 @@ void function PH_ArenaCurtain(vector a,vector b,vector colour,entity p)
 void function PH_ArenaVisualLoop()
 {
     while(!IsValid(GetLocalClientPlayer())) WaitFrame()
-    // Wall maps have fixed walls; only outlines are synced from the server.
+    // wall maps have fixed walls, only the outlines come from the server
     while(!arenaVisual.synced && !PH_WallMap())
     {
         GetLocalClientPlayer().ClientCommand("ph_zone_sync")
@@ -111,7 +108,7 @@ void function PH_ArenaVisualLoop()
             vector colour=arenaVisual.editing ? <1,0.55,0.1> : <1,0.05,0.03>
             if(PH_WallMap())
             {
-                // A handful of separate walls: draw each one, with posts at both ends.
+                // a few separate walls, each one with posts at both ends
                 array<vector> walls=PH_Walls()
                 float bottom=PH_ArenaZMin()
                 float height=PH_ArenaZMax()-bottom

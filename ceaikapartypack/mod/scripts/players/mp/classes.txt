@@ -22,7 +22,7 @@
  import "pilot_coliseum_male.set"
  import "pilot_coliseum_female.set"
  import "pilot_solo.set"
- import "pilot_solo_timeshift.set"
+ import "grunt_event_pilot.set"
  import "pilot_solo_training.set"
  import "civilian_solo.set"
  import "civilian_solo_pilot.set"

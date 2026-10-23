@@ -47,15 +47,14 @@ void function GTFO_Network()
 {
     if ( GAMETYPE != GAMEMODE_GTFO ) return
     Remote_RegisterFunction( "GTFO_LaserShotFX" )
-    // State: waiting, intermission, live. Replicated state also covers late joins.
+    // state: waiting, intermission, live
     RegisterNetworkedVariable( "gtfoState", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "gtfoRound", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "gtfoHill", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "gtfoAlive", SNDC_GLOBAL, SNVT_INT, 0 )
     RegisterNetworkedVariable( "gtfoDeadline", SNDC_GLOBAL, SNVT_TIME, 0.0 )
     RegisterNetworkedVariable( "gtfoTarget", SNDC_GLOBAL, SNVT_ENTITY )
-    // Stock integer netvars are small. Pack centiseconds into three bytes,
-    // like Frontier Defense money, so long rounds keep their full precision.
+    // stock int netvars are tiny so centiseconds get packed into 3 bytes like fd money
     RegisterNetworkedVariable( "gtfoTime", SNDC_PLAYER_GLOBAL, SNVT_UNSIGNED_INT, 0 )
     RegisterNetworkedVariable( "gtfoTime256", SNDC_PLAYER_GLOBAL, SNVT_UNSIGNED_INT, 0 )
     RegisterNetworkedVariable( "gtfoTime65536", SNDC_PLAYER_GLOBAL, SNVT_UNSIGNED_INT, 0 )
@@ -71,7 +70,7 @@ int function GTFO_GetTime( entity player )
     return player.GetPlayerNetInt( "gtfoTime" ) + 256*player.GetPlayerNetInt( "gtfoTime256" ) + 65536*player.GetPlayerNetInt( "gtfoTime65536" )
 }
 
-// User-authored Angel City presets; their averaged centers locate the domes.
+// my angel city dome presets, their centers find the domes
 array<vector> function GTFO_Corners( int hill )
 {
     switch ( hill )
@@ -89,8 +88,7 @@ vector function GTFO_Center( int hill )
     return center / 4.0
 }
 
-// The supplied z values are the wall bases, not the floor. Roof heights for
-// scoring/spawns were measured with world traces on mp_angel_city.
+// these z values are wall bases not floors. measured the roofs by hand on angel city
 float function GTFO_Floor( int hill )
 {
     if ( hill == 1 ) return 738.0
@@ -98,7 +96,7 @@ float function GTFO_Floor( int hill )
     return 960.0
 }
 
-// Use the stock Titan bubble's radius for both its visual and scoring volume.
+// stock titan bubble radius for the visual and the scoring
 float function GTFO_Radius() { return float(TITAN_BUBBLE_SHIELD_INVULNERABILITY_RANGE); }
 
 bool function GTFO_Inside( vector pos, int hill )

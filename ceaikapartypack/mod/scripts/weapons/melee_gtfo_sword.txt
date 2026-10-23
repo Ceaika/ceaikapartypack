@@ -40,22 +40,22 @@ WeaponData
 
 	MP_BASE
 	{
-		"melee_lunge_target_range"						"1"
-		"melee_lunge_target_angle"						"0.1"
+		"melee_lunge_target_range"						"90"
+		"melee_lunge_target_angle"						"5"
 		"melee_damage"									"1"
 		"melee_damage_heavyarmor"						"0"
 		"melee_attack_animtime"							"0.65"
-		"melee_lunge_time"								"0"
+		"melee_lunge_time"								"0.05"
 	}
 
 	SP_BASE
 	{
-		"melee_lunge_target_range"						"1"
-		"melee_lunge_target_angle"						"0.1"
+		"melee_lunge_target_range"						"90"
+		"melee_lunge_target_angle"						"5"
 		"melee_damage"									"1"
 		"melee_damage_heavyarmor"						"0"
 		"melee_attack_animtime"							"0.65"
-		"melee_lunge_time"								"0"
+		"melee_lunge_time"								"0.05"
 	}
 
 	//

@@ -3,15 +3,17 @@
 alright so this is my party pack for titanfall 2 (northstar / ion). it's a bunch of custom modes + a party lobby where u vote on what we play next, all tied together with transitions, a custom loading screen and some lobby stuff.
 
 modes:
-- **juggernaut** - one guy is a massive titan, everyone else hunts him
+- **juggernaut** - one guy is a massive titan, everyone else hunts him. sometimes it turns into **expendables**, where every hunter is a grunt
 - **hot potato** - someone's holding a ticking potato, melee someone to pass it before it blows
 - **prop hunt** - props hide as objects, hunters gotta find them
 - **body swap** - every few seconds u swap bodies with a random enemy
 - **gtfo** - stay on the hill and knock everyone else off, lowest hill time gets eliminated
-- **hush** - blind prowlers hunt pilots by sound. still being worked on
+- **hush** - blind prowlers hunt pilots by sound. still being worked on (forever)
 - plus the stock ones in rotation (ffa, one in the chamber, infection)
 
 this repo is the **client side only**. the server logic (round flow, scoring, spawning, all that) isn't in here, it runs on my server. u need this to join and see everything properly.
+
+current version: **2.4.19**
 
 ---
 
@@ -73,7 +75,9 @@ two engine limits to know about:
 
 ### images
 
-all the custom images (intro pieces, map/mode names in the intro font, digits, credits rows, hologram pieces) are packed into one atlas, `paks/ceaika_ui.rpak`, loaded through `paks/rpak.json`. one atlas on purpose, the game only allows 20 ui atlases loaded at once. `cl_party_names.nut` maps a map/playlist name to its name image (`PartyName_Image`, `PartyName_Aspect`).
+all the custom images (intro pieces, map/mode names in the intro font, digits, credits rows, hologram pieces) are packed into one atlas, `paks/ceaika_ui.rpak`, loaded through `paks/rpak.json`. the small hud icons (boost icons, the hush screech, the grunt voice icon) share a second one, `paks/ceaika_icons.rpak`.
+
+that's on purpose: the game only allows **20 ui atlases** loaded at once, and that counts the map's own. they used to be three separate tiny packs and every map except angel city just refused to load ("Tried to load more than 20 assets of type UI image atlas"). took me way too long to figure out that one. `cl_party_names.nut` maps a map/playlist name to its name image (`PartyName_Image`, `PartyName_Aspect`).
 
 ### party lobby
 
@@ -97,6 +101,16 @@ heads up: `kv.modelscale` doesn't scale animated models properly in this engine 
 - `cl_jugg_hack.nut` is the terminal hacking minigame: the server sends a 5-step direction code (`JuggHackBegin`), u punch it in with wasd or arrow keys (`RegisterButtonPressedCallback`), every press goes back to the server as `jugg_hack_input` and the server checks it
 - `sh_jugg_input.gnut` is the sabotage battery effect, it flips your look inversion for a bit and always puts it back
 - `party_weapon_callbacks.nut` exists because the game looks up weapon callbacks even in the main menu, where the jugg scripts aren't loaded. so this file loads everywhere and the modes plug their handlers into it (`Party_SetWeaponHandler`) when they load
+- map pool: angel city, exoplanet, complex, black water canal, glitch and colony (`keyvalues/playlists_v2.txt` and the `!votemap` list)
+
+### expendables (the grunt round)
+
+a juggernaut special event where every hunter is a grunt. the client side of it is `cl_grunt_support.nut`:
+- the cold open: the hunters "fall asleep" (eyelids + dof blur), wake up to the titanfall, then the gritty lines ("THE INTEL WAS WRONG" ...) and **GRUNT MODE** when u land. it's all a dream btw, at the end of the round u wake up on the ground
+- the drop briefing that types itself out while u ride the dropship in (the mission file never decodes, reinforcements stay on CHECKING...)
+- the boost readouts (only the grunt armada has one, it takes back the briefing's "no reinforcements")
+- the red cross over hurt teammates for shield grunts
+- grunt movement lives in `mod/scripts/players/mp/grunt_event_pilot.set`: barely any air control and no slide hopping. grunts are not pilots
 
 ### hot potato
 
@@ -110,7 +124,8 @@ heads up: `kv.modelscale` doesn't scale animated models properly in this engine 
 - `sh_ph_maps.nut`: which props each supported map uses, and the composite props built from the map's own placements
 - `sh_ph_arena.nut`: the play area. some maps get a polygon boundary, some get walls (`PH_ArenaMap`, `PH_WallMap`, `PH_ArenaNearEdge`), shared so the client can draw it and warn u before the server does
 - `cl_ph_arena.nut`: draws the red boundary walls as world planes
-- `cl_prophunt.nut`: the hud (disguise panel, health, taunt meter, reroll/decoy counts), the hunter waiting screen and the "missed, 10 seconds off" toast
+- `cl_prophunt.nut`: the hud (disguise panel, health, taunt meter, reroll/decoy counts), the hunter waiting screen and the "missed, 5 seconds off" toast
+- found props stay where they were, outlined green, and when the hunters win the last one found turns red so everyone can see where it hid (mecha chameleon style). the server leaves hidden copies tagged `ph_found` / `ph_last` and `PH_FoundOutlines` in `cl_prophunt.nut` draws them. results screen is 40 seconds so u can actually go look
 - `cl_ph_announcements.nut`: the round announcements and the whistle hints that point hunters at a prop
 - `sh_ph_controls.nut` + `ui_ph_settings.nut`: the rebindable keys, saved as convars (`ph_bind_*`) through mod settings
 - hunters stuck waiting while the props hide get a subway surfers clip lol. it's `mod/media/ceaika_ph_wait.bik` played with `playvideo_nointerrupt`. the game's video panel always draws from the top-left and ignores alpha, so the clip is 2:1 with the text baked in and the countdown sits under it
@@ -119,10 +134,11 @@ heads up: `kv.modelscale` doesn't scale animated models properly in this engine 
 
 - `sh_gamemode_bodyswap.nut`: `bsNextSwap`, when the next swap happens
 - `cl_gamemode_bodyswap.nut`: the 3, 2, 1 countdown in the intro font before every swap
+- if a swap drops u inside a wall or a ceiling the server pushes u out now (same in prop hunt when u stop being a prop next to a wall)
 
 ### tuning
 
-most numbers are playlist vars in `keyvalues/playlists_v2.txt`, so they can be changed without touching code: fuse times and tag-backs for hot potato (`hp_*`), hide/hunt time and the miss penalty for prop hunt (`ph_hide_seconds`, `ph_hunt_seconds`, `ph_miss_penalty`), promotion damage for juggernaut (`jugg_veteran_share`, `jugg_vanguard_share`), swap timing for body swap (`bs_window`, `bs_pit_window`, `bs_cross_chance`).
+most numbers are playlist vars in `keyvalues/playlists_v2.txt`, so they can be changed without touching code: fuse times and tag-backs for hot potato (`hp_*`), hide/hunt time, the miss penalty and the results time for prop hunt (`ph_hide_seconds`, `ph_hunt_seconds`, `ph_miss_penalty`, `ph_intermission`), hush's hiding time (`echo_hide_seconds`), promotion damage for juggernaut (`jugg_veteran_share`, `jugg_vanguard_share`), swap timing for body swap (`bs_window`, `bs_pit_window`, `bs_cross_chance`).
 
 ---
 

@@ -1,7 +1,7 @@
 {
     "Name": "Ceaika Party Pack",
     "Description": "custom gamemodes for friends",
-    "Version": "2.4.11",
+    "Version": "2.4.19",
     "LoadPriority": 4,
     "RequiredOnClient": true,
     "Scripts": [
@@ -186,6 +186,62 @@
         {
             "Path": "gamemodes/cl_echo_scan.nut",
             "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "gamemodes/cl_echo_heart.nut",
+            "RunOn": "CLIENT && MP"
+        },
+        {
+            "Path": "sh_party_supporters.nut",
+            "RunOn": "(CLIENT || SERVER) && MP",
+            "ServerCallback": {
+                "Before": "PartySupporters_Init",
+                "After": "PartySupporters_Start"
+            },
+            "ClientCallback": {
+                "Before": "PartySupporters_Init",
+                "After": "PartySupporters_Start"
+            }
+        },
+        {
+            "Path": "cl_party_token_egg.nut",
+            "RunOn": "CLIENT && MP",
+            "ClientCallback": {
+                "After": "PartyTokenEgg_Init"
+            }
+        },
+        {
+            "Path": "cl_party_admin_events.nut",
+            "RunOn": "CLIENT && MP",
+            "ClientCallback": {
+                "After": "PartyAdminEvents_ClientInit"
+            }
+        },
+        {
+            "Path": "sh_grunt_loadout.nut",
+            "RunOn": "SERVER || CLIENT || UI"
+        },
+        {
+            "Path": "grunt_callout_lines.nut",
+            "RunOn": "SERVER || CLIENT"
+        },
+        {
+            "Path": "grunt_weapon.nut",
+            "RunOn": "SERVER || CLIENT"
+        },
+        {
+            "Path": "cl_grunt_support.nut",
+            "RunOn": "CLIENT && MP",
+            "ClientCallback": {
+                "After": "GruntSupport_ClientInit"
+            }
+        },
+        {
+            "Path": "cl_grunt_event.nut",
+            "RunOn": "CLIENT && MP",
+            "ClientCallback": {
+                "After": "GruntEvent_ClientInit"
+            }
         }
     ],
     "ConVars": [
@@ -260,6 +316,10 @@
         {
             "Name": "jugg_input_saved_yaw",
             "DefaultValue": "0.022"
+        },
+        {
+            "Name": "party_supporter_sync",
+            "DefaultValue": "0"
         }
     ],
     "Localisation": [

@@ -38,7 +38,7 @@ void function Echo_Create()
 }
 array<string> function Echo_Maps() { return ["mp_lf_stacks","mp_lf_uma","mp_lf_meadow"]; }
 bool function Echo_CanExecute(entity attacker,entity target) { return false; }
-// Baked radius steps: client-side modelscale does not resize the rendered mesh.
+// baked radius steps cus client modelscale doesnt actually resize the mesh. respawn why
 array<asset> function Echo_BoundaryModels()
 {
     return [
@@ -112,6 +112,10 @@ array<asset> function Echo_BoundaryModels()
 void function Echo_Network()
 {
     if(GAMETYPE!=GAMEMODE_ECHO) return
+    Remote_RegisterFunction("Echo_HeartZoneBegin")
+    Remote_RegisterFunction("Echo_HeartZonePoint")
+    Remote_RegisterFunction("Echo_HeartZoneCommit")
+    RegisterNetworkedVariable("echoHeartDeadline",SNDC_PLAYER_EXCLUSIVE,SNVT_TIME,0.0)
     Remote_RegisterFunction("Echo_ScreechFX")
     Remote_RegisterFunction("Echo_HiderVocalFX")
     Remote_RegisterFunction("Echo_GruntNotice")

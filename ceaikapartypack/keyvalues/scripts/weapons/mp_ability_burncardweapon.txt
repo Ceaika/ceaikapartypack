@@ -1,0 +1,61 @@
+"WeaponData"
+{
+    // Jugg boost icons: the boost slot shows the held boost's icon through one of
+    // these mods (see JuggBoostWeaponMods). Amped Weapons uses the stock
+    // burnmeter_amped_weapons mod. Using a Jugg boost always runs JuggActivateBoost,
+    // so these change nothing but the icon.
+    "Mods"
+    {
+        "jugg_boost_tether"
+        {
+            "hud_icon" "rui/titan_loadout/ordnance/tether"
+        }
+        "jugg_boost_tick"
+        {
+            "hud_icon" "rui/menu/boosts/boost_icon_tick"
+        }
+        "jugg_boost_charge_rifle"
+        {
+            "hud_icon" "rui/pilot_loadout/mods/charge_hack"
+        }
+        // rui/ceaika/* icons come from paks/jugg_boost_icons.rpak (work/boost-icons):
+        // callsign patch art rebuilt as HUD stencils, since the patch textures
+        // themselves show as a blank white block in the boost slot.
+        "jugg_boost_reaperfall"
+        {
+            "hud_icon" "rui/ceaika/boost_reaper"
+        }
+        "jugg_boost_stalker"
+        {
+            "hud_icon" "rui/ceaika/boost_wraith"
+        }
+        "jugg_boost_spectres"
+        {
+            "hud_icon" "rui/ceaika/boost_hammond"
+        }
+        "jugg_boost_challenge"
+        {
+            "hud_icon" "rui/titan_loadout/passive/titanfall_kit_warpfall"
+        }
+        "jugg_boost_sabotage"
+        {
+            "hud_icon" "rui/menu/boosts/boost_icon_battery_amped"
+        }
+        "jugg_boost_sentry"
+        {
+            "hud_icon" "rui/menu/boosts/boost_icon_titan_sentry"
+        }
+        "jugg_boost_drones"
+        {
+            "hud_icon" "rui/ceaika/boost_drone"
+        }
+        "jugg_boost_cloak"
+        {
+            "hud_icon" "rui/pilot_loadout/tactical/pilot_tactical_cloak"
+        }
+        "jugg_boost_armada"
+        {
+            "hud_icon" "rui/ceaika/boost_imc"
+        }
+    }
+}

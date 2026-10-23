@@ -8,16 +8,10 @@ global function Party_TacticalAttack
 global function Party_SmokeAttack
 global function Party_UpgradeCoreAttack
 
-// Weapon callbacks named by the pack's keyvalues overrides (pilot tacticals,
-// electric smoke, Upgrade Core). The game looks these up whenever it loads the
-// weapon, which can happen where the party modes' scripts are not loaded at
-// all: the main menu (some other mods load weapons there), the campaign. A
-// missing callback is a crash ("Couldn't find callback function").
-//
-// So this file loads everywhere and names nothing else (an unknown name would
-// not compile there). The multiplayer scripts hand it their handlers when they
-// load (Party_SetWeaponHandler): Hot Potato's tacticals and Juggernaut's smoke
-// and Upgrade Core, each of which runs the stock behaviour outside its mode.
+// weapon callbacks the keyvalues point at. the game looks these up whenever it loads the weapon,
+// even in the main menu or campaign where our scripts dont exist. missing callback = crash.
+// so this file loads everywhere and the mp scripts hand it their handlers when they load.
+// this crashed the main menu for people for a whole version before i figured it out
 
 struct
 {
@@ -68,8 +62,7 @@ var function Party_UpgradeCoreAttack( entity weapon, WeaponPrimaryAttackParams a
     return 0
 }
 
-// Always-loaded callback names remain valid in menus/campaign weapon precaches.
-// Hush supplies the actual MP handlers when its shared script loads.
+// always loaded names stay valid in menus, hush gives the real handlers
 
 void function Party_SetEchoDecoyHandlers(void functionref(entity,vector,vector,entity,int,bool) collision,void functionref(entity) ignite)
 {

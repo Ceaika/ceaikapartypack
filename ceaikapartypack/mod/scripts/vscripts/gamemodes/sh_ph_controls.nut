@@ -10,7 +10,7 @@ array<string> function PH_KeyLabels() { return ["Unbound", "R", "Q", "F", "E", "
 array<string> function PH_PadLabels() { return ["Unbound", "D-pad Left", "D-pad Up", "D-pad Down", "D-pad Right", "A", "B", "X", "Y", "LB", "RB"]; }
 int function PH_BindingIndex(string action,bool pad)
 {
-    // Taunt uses a renamed setting so profiles that saved T in 1.3.12 get the new G default.
+    // taunt got renamed so people who saved T get the new G default
     string name=action=="taunt" ? "taunt_g" : action
     int value=GetConVarInt("ph_bind_"+name+(pad ? "_pad" : "_key"))
     int count=pad ? PH_PadLabels().len() : PH_KeyLabels().len()

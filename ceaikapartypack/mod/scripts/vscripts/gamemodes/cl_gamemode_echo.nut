@@ -5,9 +5,12 @@ global function Echo_HiderVocalFX
 global function Echo_DecoyMotion
 global function Echo_DecoyFX
 global function Echo_GruntNotice
+global function Echo_AdminNotice
+global function Echo_AdminNoticeClear
 struct
 {
     string gruntNotice = ""
+    float adminNoticeUntil = 0.0
     float gruntNoticeUntil = 0.0
     int lastGruntNotice = -1
     int hiderCorrection = -1
@@ -21,6 +24,7 @@ struct
     int activeCorrection = -1
     array<int> fadeCorrections
     int vision = 0
+    float savedHidingVolume = -1.0
     table<entity,table> noise
 } file
 
@@ -39,6 +43,7 @@ void function Cl_Echo_Init()
         file.fadeCorrections.append(ColorCorrection_Register(format("materials/correction/echo_fade_%02d.raw",i)))
     file.fadeCorrections.append(file.correction)
     EchoScan_Init()
+    Echo_HeartClientInit()
     thread Echo_ClientLoop()
     thread Echo_Bodies()
     thread Echo_TeammateOutlines()
@@ -51,6 +56,16 @@ void function Echo_ClearRipples()
 void function Echo_Vision(int mode)
 {
     if(mode==file.vision) return
+    if(mode==1 && file.savedHidingVolume<0.0)
+    {
+        file.savedHidingVolume=GetSoundVolume()
+        SetSoundVolume(0.0)
+    }
+    else if(mode!=1 && file.savedHidingVolume>=0.0)
+    {
+        SetSoundVolume(file.savedHidingVolume)
+        file.savedHidingVolume=-1.0
+    }
     if(file.activeCorrection>=0)
     {
         ColorCorrection_SetWeight(file.activeCorrection,0.0)
@@ -78,8 +93,8 @@ void function Echo_Vision(int mode)
         Minimap_DisableDraw()
     }
 }
-// Only one exclusive lookup may be active: trying to blend two exclusive
-// filters leaks the ungraded map. Baked brightness steps also fade baked light.
+// only ONE exclusive color lookup at a time, blending two leaks the normal looking map.
+// found that out when the whole map just showed up normal mid round lmao
 void function Echo_UpdateFilter()
 {
     if(file.vision!=2 || file.activeCorrection==file.correction) return
@@ -116,10 +131,8 @@ void function Echo_Noise(entity p,float intensity,string kind="other",bool silho
     EchoScan_Noise(p,radius,trail ? min(seconds,0.2) : seconds,GraphCapped(intensity,0.0,1.0,0.25,1.0),trail,silhouette,continuous)
     if(GetCurrentPlaylistVarInt("echo_noise_debug",0)>0) print("[ECHO-NOISE] "+kind+" intensity="+intensity+" silhouette="+silhouette+" source="+p.GetOrigin())
 }
-// Hiders carry only melee and noise decoys. Never read another player's
-// owner-only ammo/reload state here; a remote weapon query terminates this thread.
-// Movement observations stay on this hunter's client. The server only sends
-// the frozen source of a scheduled grunt, synchronized with its audible sound.
+// hiders only have melee + noise decoys. DONT read another player's ammo/reload here,
+// querying a remote weapon kills this thread. took me a day to figure out why hush randomly broke
 void function Echo_Listen(entity listener)
 {
     array<entity> heard
@@ -143,8 +156,7 @@ void function Echo_Listen(entity listener)
         bool sliding=p.IsSliding() || shoved
         bool wall=p.IsWallRunning()
         bool quiet=p.GetPlayerNetBool("echoQuiet") && !shoved
-        // Riding is continuously noisy, including when holding crouch or stopped
-        // on the rope. Refresh the last pose independently of footsteps/mantles.
+        // ziplines are always noisy even crouched or stopped on the rope
         bool ziplining=p.IsZiplining()
         if(ziplining && Time()>=old.nextZipline)
         {
@@ -165,13 +177,12 @@ void function Echo_Listen(entity listener)
         if(!ziplining && climbing && !old.climbing) Echo_Noise(p,GetCurrentPlaylistVarFloat("echo_noise_soft",0.15),"climb",false)
         if(!quiet && landed && old.fallVelocity<0)
         {
-            // Soft impacts and mantle exits keep their audio and a faint patch,
-            // but neither capture nor refresh a silhouette at the new position.
+            // soft landings and mantle exits keep the sound + a faint patch but dont move the silhouette
             float fallSpeed=-expect float(old.fallVelocity)
-            if(mantle || fallSpeed<GetCurrentPlaylistVarFloat("echo_land_speed",250.0))
+            if(mantle || fallSpeed<GetCurrentPlaylistVarFloat("echo_land_speed",176.78))
                 Echo_Noise(p,GetCurrentPlaylistVarFloat("echo_noise_soft",0.15),"soft land",false)
             else
-                Echo_Noise(p,GraphCapped(fallSpeed,GetCurrentPlaylistVarFloat("echo_land_speed",250.0),GetCurrentPlaylistVarFloat("echo_land_hard_speed",800.0),GetCurrentPlaylistVarFloat("echo_noise_land",0.3),1.0),"land")
+                Echo_Noise(p,GraphCapped(fallSpeed,GetCurrentPlaylistVarFloat("echo_land_speed",176.78),GetCurrentPlaylistVarFloat("echo_land_hard_speed",800.0),GetCurrentPlaylistVarFloat("echo_noise_land",0.3),1.0),"land")
             old.nextStep=Time()+max(0.05,GetCurrentPlaylistVarFloat("echo_step_interval",0.35))
         }
         if(meleeActive && !old.melee) Echo_Noise(p,GetCurrentPlaylistVarFloat("echo_noise_melee",0.2),"melee")
@@ -181,6 +192,12 @@ void function Echo_Listen(entity listener)
     foreach(entity p,table state in file.noise) if(!heard.contains(p)) stale.append(p)
     foreach(entity p in stale) delete file.noise[p]
 }
+void function Echo_AdminNotice()
+{
+    file.adminNoticeUntil = Time()+5.0
+}
+void function Echo_AdminNoticeClear() { file.adminNoticeUntil = 0.0 }
+
 void function Echo_GruntNotice()
 {
     entity p=GetLocalClientPlayer()
@@ -207,8 +224,7 @@ var function Echo_Text(float size,vector color,vector position,bool centered=fal
 }
 void function Echo_ClientLoop()
 {
-    // Hiders get a single stock objective line at the top of the screen
-    // (Frontier War's objective text): SURVIVE. Nobody else gets any HUD.
+    // hiders get one stock objective line: SURVIVE. nobody else gets hud
     var objective=CreatePermanentCockpitRui($"ui/fw_objective_text.rpak",0)
     RuiSetString(objective,"objective","")
     var notice=Echo_Text(28.0,<1.0,0.85,0.60>,<0,0.28,0>,true)
@@ -254,6 +270,11 @@ void function Echo_ClientLoop()
             float age=5.0-(file.gruntNoticeUntil-Time())
             noticeAlpha=min(clamp(age/0.15,0.0,1.0),clamp((file.gruntNoticeUntil-Time())/0.65,0.0,1.0))
         }
+        if (active && Time()<file.adminNoticeUntil)
+        {
+            notification = "you feel like the admin is messing with you"
+            noticeAlpha = clamp((file.adminNoticeUntil-Time())/0.65,0.0,1.0)
+        }
         Echo_UpdateFilter()
         RuiSetString(objective,"objective",playing && hider && (phase==1 || phase==2) ? "SURVIVE" : "")
         RuiSetString(notice,"msgText",notification)
@@ -265,8 +286,7 @@ void function Echo_ClientLoop()
 
 
 
-// Like Prop Hunt's client disguises, attach visuals to the interpolated player
-// origin rather than a separately networked prop, avoiding a trailing body.
+// same trick as prop hunt: visuals on the interpolated player origin, no trailing body
 void function Echo_Bodies()
 {
     table<entity,table> bodies
@@ -282,6 +302,10 @@ void function Echo_Bodies()
             active.append(p)
             if(!(p in bodies)) bodies[p] <- Echo_NewBody(p.GetOrigin(),p.EyeAngles().y)
             Echo_UpdateBody(bodies[p],p.GetOrigin(),p.EyeAngles().y,p.GetVelocity(),p.IsOnGround(),p.IsTraversing(),p.IsCrouched(),p.PlayerMelee_IsAttackActive(),p.GetPlayerNetTime("echoLastScreech"))
+            entity viewer=GetLocalViewPlayer()
+            bool reveal=GetGlobalNetInt("echoPhase")==1 && IsValid(viewer) && IsAlive(viewer) && viewer.GetPlayerNetBool("echoActive") && !viewer.GetPlayerNetBool("echoHunter")
+            entity model=expect entity(bodies[p].model)
+            Echo_ProwlerSpawnOutline(model,reveal)
         }
         array<entity> stale
         foreach(entity p,table body in bodies) if(!active.contains(p)) stale.append(p)
@@ -294,7 +318,7 @@ void function Echo_Bodies()
     }
 }
 
-// Smooth the visual body only. The player's camera and movement remain immediate.
+// smooth the visual body only, camera and movement stay instant
 float function Echo_TurnYaw(float current,float target,float seconds)
 {
     float delta=target-current
@@ -312,7 +336,7 @@ void function Echo_UpdateBody(table body,vector origin,float yaw,vector velocity
     float speed=Length2D(velocity)
     if(climbing && !body.climbing)
     {
-        // Latch on entry so fluctuating traversal velocity cannot restart the pose.
+        // latch on entry so wobbly traversal speed cant restart the pose
         float approach=max(speed,expect float(body.lastSpeed))
         body.mantle=approach>240.0 ? "pr_traverse_across_128" : (approach>100.0 ? "pr_traverse_jump_up_38" : "pr_traverse_jump_up_64")
         body.mantleRate=approach>240.0 ? 1.4 : (approach>100.0 ? 1.0 : 0.8)
@@ -341,7 +365,6 @@ void function Echo_UpdateBody(table body,vector origin,float yaw,vector velocity
     body.lastTurn=Time()
     body.model.SetAngles(<0,expect float(body.yaw),0>)
     body.model.SetOrigin(origin)
-    // The custom model adds the original plate delta over whichever body pose is playing.
     float plateDuration=max(0.1,body.model.GetSequenceDuration("pr_additive_plate_pulse"))
     float age=Time()-lastScreech
     body.model.SetPoseParameter("hush_screech_cycle",lastScreech>0.0 && age>=0.0 && age<plateDuration ? age/plateDuration : 0.0)
@@ -397,8 +420,7 @@ void function Echo_Heartbeat(entity p,bool active)
     if(GetCurrentPlaylistVarInt("echo_noise_debug",0)>0) print("[ECHO-HEART] distance="+distance+" bpm="+bpm+" next="+file.nextHeartbeat)
 }
 
-// Client-only rolling sprite mist. Old particles drift in world space while
-// emitter positions follow the local hider. No RUI or gameplay smoke volume.
+// client only sprite mist, old particles drift while the emitter follows the hider
 void function Echo_ClearHiderMist()
 {
     foreach(int fx in file.hiderMist)
@@ -425,8 +447,7 @@ void function Echo_UpdateHiderMist(entity p)
     }
 }
 
-// Native outlines on the actual teammate model, not HUD markers or pose clones.
-// The server owns the friendly shader context; the viewer only controls its flags.
+// native outlines on the actual teammate, the server owns the shader context
 float function Echo_TeammateAlpha(float distance)
 {
     float nearRange=max(0.0,GetCurrentPlaylistVarFloat("echo_teammate_full_range",240.0))
@@ -451,9 +472,8 @@ void function Echo_ApplyFriendlyOutline(entity teammate,bool initialize=false)
     teammate.Highlight_HideInside(0.0)
     if(alpha>=0.999) { teammate.Highlight_ShowOutline(0.0); return; }
     if(alpha<=0.001) { teammate.Highlight_HideOutline(0.0); return; }
-    // Native Show/Hide accept transition durations, not an opacity. Advance
-    // toward the desired distance opacity over the next 50 ms update, then
-    // retarget from the actual current opacity. Never write replicated colors.
+    // Show/Hide take a fade time not an opacity so we fake it with 50ms steps.
+    // this is so dumb but its the only way i got it smooth
     float current=teammate.Highlight_GetCurrentOutlineOpacity()
     float delta=alpha-current
     if(fabs(delta)<0.002) teammate.Highlight_ShowOutline(1000000.0)
@@ -503,4 +523,28 @@ float function Echo_HeartbeatBPM(float distance,float range)
 void function Echo_DecoyMotion(int id,float x,float y,float z,float yaw,int pose)
 {
     EchoScan_DecoyMotion(id,<x,y,z>,yaw,pose)
+}
+
+
+void function Echo_ProwlerSpawnOutline(entity model,bool reveal)
+{
+            if(reveal)
+            {
+                model.Highlight_SetInheritHighlight(false)
+                model.Highlight_SetFunctions(1,0,true,101,5.0,0,true)
+                model.Highlight_SetParam(1,0,<1.4,0.025,0.015>)
+                model.Highlight_SetCurrentContext(1)
+                model.Highlight_SetVisibilityType(HIGHLIGHT_VIS_ALWAYS)
+                model.Highlight_SetNearFadeDist(0.0)
+                model.Highlight_SetFarFadeDist(100000.0)
+                model.Highlight_SetLifeTime(Time()+1.0)
+                model.Highlight_StartOn()
+                model.Highlight_HideInside(0.0)
+                model.Highlight_ShowOutline(0.0)
+            }
+            else
+            {
+                model.Highlight_HideOutline(0.0)
+                model.Highlight_HideInside(0.0)
+            }
 }
