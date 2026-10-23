@@ -127,6 +127,7 @@ ClClient_MessageStruct function PartySupporters_Chat(ClClient_MessageStruct msg)
     int rank=msg.player.GetPlayerNetInt("partySupporterRank")
     if(rank<1) return msg
     int preset=int(clamp(msg.player.GetPlayerNetInt("partySupporterColour"),0,6))
+    //FUCK THIS SHIT
     // northstar's rgb parser rejects 255 so everything stays under it. why. just why
     array<string> colours=["\x1b[38;2;254;138;61m","\x1b[38;2;254;209;102m","\x1b[38;2;254;100;100m","\x1b[38;2;196;161;254m","\x1b[38;2;128;230;176m","\x1b[38;2;254;155;197m"]
     string teamColour=msg.player.GetTeam()==GetLocalClientPlayer().GetTeam() ? "\x1b[111m" : "\x1b[112m"

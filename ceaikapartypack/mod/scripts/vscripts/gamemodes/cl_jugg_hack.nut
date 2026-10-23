@@ -202,6 +202,7 @@ void function JuggHackDrawCard(bool active,bool result)
     RuiSetFloat(hackHud.bar,"basicImageAlpha",alpha)
     RuiSetFloat3(hackHud.fill,"basicImageColor",accent)
     RuiSetFloat(hackHud.fill,"basicImageAlpha",alpha)
+    //move. MOVE. why are u not where i put u
     // msgPos is an offset from screen middle and text draws a bit above it. i hate rui positioning
     RuiSetString(hackHud.title,"msgText",result ? hackUI.result : "TERMINAL OVERRIDE")
     RuiSetFloat3(hackHud.title,"msgColor",result ? accent : <0.9,0.96,1.0>)

@@ -21,6 +21,7 @@ const float VB_DIGIT_H = 24.0
 const float VB_DIGIT_ASPECT = 0.7297 // the digit cells' 81 x 111
 const float VB_TEXT_H = 76.5         // the text plane: VB_W at 16:9, as the text canvas
 
+//why is everything red
 // world panels take srgb colours. the hud ones come out red here, dont ask
 const vector VB_ORANGE = <0.992,0.294,0.004>   // the loading screen's #FD4B01
 const vector VB_GREEN = <0.3,0.92,0.46>
@@ -199,8 +200,12 @@ vector function VB_Toward( entity panel, vector eye )
     return Length( flat ) > 1.0 ? Normalize( flat ) : <1,0,0>
 }
 
+//why is it invisible
+//why is it upside down
+//WHY IS IT INVISIBLE AND UPSIDE DOWN
 // flat rect at a screen. world planes only render from one side and draw from the top left corner
 // going right and down. got this wrong like 5 times and everything was upside down or invisible
+//okay faces the right way now
 void function VB_Quad( int index, entity panel, vector toward, float x, float z, float w, float h, float depth, float alpha )
 {
     vector right = CrossProduct( toward, <0,0,1> )

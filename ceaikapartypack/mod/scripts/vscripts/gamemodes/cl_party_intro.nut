@@ -38,9 +38,13 @@ const float CORNER_MAP_Y = 449.2
 const float CORNER_MAP_H = 59.1    // the name images' height (capitals)
 const float CORNER_MODE_Y = 548.4
 const float CORNER_MODE_H = 47.2    // the name images' height (tallest letters to the tails of g, p...)
+//WHY IS THE TEXT NOT GETTING BIGGER
+//WHY
+//WHY
 // the loading screen draws names as text and the game caps text at ~128px no matter what.
 // so on big screens the names come out smaller and the card copies that so nothing jumps.
 // spent an entire evening wondering why my text wouldnt get bigger
+//okay works now. fuck vgui
 const float VGUI_MAX_TALL = 128.0
 const float LOADING_MAP_FONT = 86.0
 const float LOADING_MODE_FONT = 62.0
@@ -125,8 +129,10 @@ void function PartyIntro_NextCommand( array<string> args )
 
 // ---------------------------------------------------------------- timing
 
+//DUDE WHY ARE YOU SKIPPING
 // animation clock. real time but max 1/30s per frame so a hitch slows it instead of skipping.
 // without this it skipped half the intro on the real server and it looked awful
+//okay doesnt skip anymore
 void function PartyIntro_ClockStart()
 {
     intro.clock = 0.0
@@ -544,6 +550,8 @@ void function PartyCard_Hole( array<IntroImage> card, float hole )
     float x1 = hx + d*0.5
     float y0 = hy - d*0.5
     float y1 = hy + d*0.5
+    //what are these lines
+    //WHAT ARE THESE LINES
     // pieces overlap by a pixel or u see faint seams. took me forever to notice those
     PartyCard_Rect( card[CARD_TOP], -40.0, -40.0, width + 40.0, y0 + 1.0, INTRO_ORANGE, 1.0 )
     PartyCard_Rect( card[CARD_BOTTOM], -40.0, y1 - 1.0, width + 40.0, height + 40.0, INTRO_ORANGE, 1.0 )
@@ -630,6 +638,7 @@ void function PartyIntro_Run()
     if ( IsValid( player ) ) { EmitSoundOnEntity( player, intro.musicEvent ); intro.musicPlaying = true; }
     if(GAMETYPE=="echo") waitthread PartyHushGlitch_Sequence(card,texts,map,mode)
     else waitthread PartyIntro_Sequence( card, texts, map, mode )
+    //FUCK THIS SHIT
     // 64 topology limit AGAIN. keep just presents... from here so mode huds have room
     PartyCard_Destroy( card, texts, CARD_LINE )
     waitthread PartyIntro_Presents( card )
@@ -811,8 +820,11 @@ void function PartyTransition_Arrive()
 
 void function PartyTransition_Show( int kind, int mode )
 {
+    //where did the transition go
+    //WHERE DID IT GO
     // lobby holograms hog the 64 planes so free them first or theres no transition at all.
     // this bug made the transition just not exist for like 2 versions and nobody told me
+    //ok its back. i hate this engine
     PartyVoteBoards_Release()
     PartyCredits_Release()
     PartyStatue_Release()

@@ -131,8 +131,12 @@ void function Echo_Noise(entity p,float intensity,string kind="other",bool silho
     EchoScan_Noise(p,radius,trail ? min(seconds,0.2) : seconds,GraphCapped(intensity,0.0,1.0,0.25,1.0),trail,silhouette,continuous)
     if(GetCurrentPlaylistVarInt("echo_noise_debug",0)>0) print("[ECHO-NOISE] "+kind+" intensity="+intensity+" silhouette="+silhouette+" source="+p.GetOrigin())
 }
+//WHY DOES HUSH JUST STOP
+//no error. no crash. nothing. it just stops
+//FUCK THIS SHIT
 // hiders only have melee + noise decoys. DONT read another player's ammo/reload here,
 // querying a remote weapon kills this thread. took me a day to figure out why hush randomly broke
+//okay works now. never touching weapons in here again
 void function Echo_Listen(entity listener)
 {
     array<entity> heard
@@ -472,6 +476,7 @@ void function Echo_ApplyFriendlyOutline(entity teammate,bool initialize=false)
     teammate.Highlight_HideInside(0.0)
     if(alpha>=0.999) { teammate.Highlight_ShowOutline(0.0); return; }
     if(alpha<=0.001) { teammate.Highlight_HideOutline(0.0); return; }
+    //fuckkkkkkkkkkkkkkkkk
     // Show/Hide take a fade time not an opacity so we fake it with 50ms steps.
     // this is so dumb but its the only way i got it smooth
     float current=teammate.Highlight_GetCurrentOutlineOpacity()

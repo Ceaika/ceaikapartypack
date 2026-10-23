@@ -8,10 +8,13 @@ global function Party_TacticalAttack
 global function Party_SmokeAttack
 global function Party_UpgradeCoreAttack
 
+//WHY DOES THE MAIN MENU CRASH
+//its the main menu. theres nothing there. HOW
 // weapon callbacks the keyvalues point at. the game looks these up whenever it loads the weapon,
 // even in the main menu or campaign where our scripts dont exist. missing callback = crash.
 // so this file loads everywhere and the mp scripts hand it their handlers when they load.
 // this crashed the main menu for people for a whole version before i figured it out
+//okay main menu works again
 
 struct
 {

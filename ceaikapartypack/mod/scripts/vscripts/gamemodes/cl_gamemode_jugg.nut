@@ -385,6 +385,7 @@ void function JuggHudLine(var rui,string text,vector color,float alpha,float x,f
 
 // find crates by script name, including late joins. dont give up after 1 second
 // (it used to and terminals just had no labels for half the lobby)
+//fixed. finally
 void function JuggTerminalIconsThink()
 {
     table<entity, bool> tracked
@@ -908,9 +909,11 @@ void function JuggBarDrawFlyouts(bool showHull,float x,float barY,float w,float 
     }
 }
 
+//DUDE WHERE IS THE ICON
 // ---------------------------------------------------------------- core icon
 // the stock earn meter sets the core icon once and if the core weapon wasnt here yet
 // its a blank square for the whole life. respawn why. refresh it whenever it changes
+//okay icon shows up now
 void function JuggCoreIconThink()
 {
     string last = ""
@@ -963,6 +966,9 @@ void function JuggCockpitBurst(asset effect,float life,string sound)
     if (IsValid(cockpit) && EffectDoesExist(fx)) EffectStop(fx,true,false)
 }
 
+//fuckkkkkkkkkkkkkkkkkkkkkkk
+//why is it floating in the middle of the cockpit
+//WHY IS IT UPSIDE DOWN NOW
 // ---------------------------------------------------------------- cockpit key buttons
 // number key abilities get a button bottom right of the cockpit: key cap, name, state.
 // ready it breathes, running it lights up and a bar drains. drawn on the curved cockpit
@@ -970,6 +976,7 @@ void function JuggCockpitBurst(asset effect,float life,string sound)
 //   1  shield override (aegis 3), cyan
 //   2  fold weapon (aegis 4), orange
 // getting this to sit on the curved hud took me 2 days and a lot of swearing
+//okay its on the hud. not touching this ever again
 const float JUGG_KEY_U = 0.835      // card centre across the cockpit HUD (0 left, 1 right)
 const float JUGG_KEY_V = 0.775      // the lowest card's centre down it
 const float JUGG_KEY_STEP = 0.118   // the next card up

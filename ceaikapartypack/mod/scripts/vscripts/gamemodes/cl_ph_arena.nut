@@ -39,8 +39,10 @@ void function PH_ArenaPanel(vector origin,vector right,vector up,float alpha,vec
     int index=arenaVisual.used
     if(index==arenaVisual.panels.len())
     {
+        //where did the walls go
         // all 64 topologies can be taken for a sec (the intro card hogs a bunch), so skip and retry
         // instead of erroring and killing the walls for the whole match
+        //walls are back
         if(Time()<arenaVisual.retryAt) return
         var topo
         try { topo=RuiTopology_CreatePlane(origin,right,up,true) }

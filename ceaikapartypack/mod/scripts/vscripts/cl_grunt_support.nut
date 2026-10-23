@@ -146,7 +146,10 @@ void function GruntSupport_Lids(int id,array<float> keys,float linger)
         RuiTopology_UpdatePos(file.lidTopos[1],<0,height-lid,0>,<width,0,0>,<0,max(lid,0.0),0>)
         RuiTopology_UpdatePos(file.lidTopos[2],<0,lid,0>,<width,0,0>,<0,soft,0>)
         RuiTopology_UpdatePos(file.lidTopos[3],<0,height-lid-soft,0>,<width,0,0>,<0,soft,0>)
+        //why is there a black bar on my screen
+        //WHY WONT IT GO AWAY
         // soft edges fade out when ur eyes are open otherwise u get a dark band forever
+        //ok gone
         RuiSetFloat(file.lids[2],"basicImageAlpha",0.55*(1.0-open))
         RuiSetFloat(file.lids[3],"basicImageAlpha",0.55*(1.0-open))
         if(t>end+linger) break
@@ -290,8 +293,10 @@ void function GruntSupport_Type(int channel,int id,string header,array<string> l
     if(file.termIds[channel]==id) GruntSupport_TermClear(channel)
 }
 
+//DUDE THIS LOOKS SO BAD
 // fake decryption. climbs in bursts, hangs in the 80s, then fails.
 // first version scrambled random letters and it looked so bad lmao
+//okay looks good now
 void function GruntSupport_Decode(int channel,int id,var rui,string label,string error)
 {
     float percent=0.0
@@ -357,6 +362,7 @@ void function GruntSupport_LineClear()
     file.bandTopo=null
 }
 
+//fuckkkkkkkkkkkkkkkkkkkkkkkkkkkk
 // slams in too big, settles with a flicker, creeps bigger, glitches sometimes, stutters out.
 // wayyy too many numbers in here but it looks good so dont touch it
 void function GruntSupport_LineThread(int id,int index)

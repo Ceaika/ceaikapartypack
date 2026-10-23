@@ -171,6 +171,7 @@ void function PH_TextAt( var rui, string text, float x, float y, float alpha, fl
     RuiSetFloat( rui, "msgAlpha", alpha )
 }
 
+//"too many locals" FUCK OFF
 // hud stuff lives in a struct so every draw step can be its own function
 // (squirrel has a limit on locals per function and i hit it. twice)
 struct
@@ -218,6 +219,8 @@ void function PH_HudCreate()
     asset CENTER = $"ui/cockpit_console_text_center.rpak"
     // hunter wait screen during hide phase
     phUi.waitTopo = PH_NewTopo()
+    //what is that box
+    //WHAT IS THAT BOX
     // the near black the game draws a video's black as, so the video edge doesnt show.
     // took me way too long to figure out why there was a visible box
     phUi.waitBack = PH_HudRect( phUi.waitTopo, <0.0024,0.0024,0.0024>, 0.0, 105 )
@@ -473,8 +476,11 @@ void function PH_HudToast()
     RuiSetFloat( phUi.toastText, "msgAlpha", age < 1.2 ? 1.0 : clamp( 1.0-(age-1.2)/0.4, 0.0, 1.0 ) )
 }
 
+//DUDE WHY ARE YOU JITTERING
+//stop shaking. STOP SHAKING
 // draw every disguise from the predicted position each frame. client only models,
 // no collision no parent no anims. this is the only way it stopped jittering
+//okay smooth now
 void function PH_Visuals()
 {
     table<entity,entity> visuals

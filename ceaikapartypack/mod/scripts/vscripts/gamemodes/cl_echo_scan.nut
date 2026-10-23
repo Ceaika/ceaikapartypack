@@ -97,8 +97,11 @@ void function EchoScan_NoiseAt(vector origin,float radius,float travel,entity so
     if(Distance(GetLocalClientPlayer().EyePosition(),origin)>GetCurrentPlaylistVarFloat("echo_noise_range",3072.0)) return
     // a grunt or melee while running cant interrupt the moving echo
     bool following=silhouette && IsValid(source) && (continuous || EchoScan_HasMovingEcho(source)) && EchoScan_NoisyMovement(source)
+    //WHY ARE THERE DOTS EVERYWHERE
+    //WHERE ARE THEY COMING FROM
     // 12 light slots reused. quiet ones get set black every frame or u get permanent dots everywhere.
     // the permanent dots bug haunted me for like 3 days
+    //okay dots are gone. i can sleep
     int choice=-1
     float oldest=Time()+1.0
     foreach(int i,table noise in scan.noises)
